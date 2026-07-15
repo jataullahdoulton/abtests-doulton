@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doulton — Test Pipeline Tracker</title>
+<style>
+  :root{
+    --navy:#152B54;
+    --deep-navy:#0B1B37;
+    --deep-navy-2:#16233F;
+    --gold:#C9A46B;
+    --cream:#F6F4EF;
+    --ink:#1C2333;
+    --slate:#5B6478;
+    --line:#DCD6C9;
+    --white:#FFFFFF;
+    --stage-briefing:#C9A46B;
+    --stage-design:#8E7FB8;
+    --stage-signedoff:#5C8B6E;
+    --stage-building:#3B6EA5;
+    --stage-live:#2F7D4F;
+    --stage-completed:#7A7264;
+    --red:#B5533C;
+    --green:#2F6B44;
+    --amber:#8A6A2F;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--cream);
+    background-image:
+      linear-gradient(rgba(21,43,84,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(21,43,84,0.05) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
+  .mono{font-family:"SF Mono","Roboto Mono",Menlo,Consolas,monospace;}
+  header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:26px 40px;border-bottom:1px solid var(--line);
+    background:rgba(246,244,239,0.85);backdrop-filter:blur(4px);
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:8px;
+    background:linear-gradient(135deg,var(--navy),var(--deep-navy));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold);font-weight:700;font-size:15px;font-family:sans-serif;
+    letter-spacing:0.5px;
+  }
+  .brand .names{line-height:1.15;}
+  .brand .names .k{
+    font-family:sans-serif;
+    font-size:12px;letter-spacing:2.5px;font-weight:700;color:var(--navy);text-transform:uppercase;
+  }
+  .brand .names .d{font-size:12px;color:var(--slate);font-family:sans-serif;letter-spacing:1px;}
+  .updated{
+    font-family:sans-serif;font-size:12px;color:var(--slate);letter-spacing:0.3px;
+    text-align:right;
+  }
+  .updated b{color:var(--ink);}
+  .hero{padding:52px 40px 20px;}
+  .eyebrow{
+    font-family:sans-serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
+    color:var(--gold);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);display:inline-block;}
+  h1{font-size:46px;margin:0 0 10px;font-weight:500;color:var(--deep-navy);letter-spacing:-0.5px;}
+  .sub{font-family:sans-serif;color:var(--slate);font-size:15px;max-width:640px;line-height:1.6;margin-bottom:6px;}
+  .pipeline-strip{
+    margin:34px 40px 6px;
+    padding:22px 26px;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:10px;
+    font-family:sans-serif;
+  }
+  .pipeline-strip .label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:16px;}
+  .stages{display:flex;align-items:center;}
+  .stage-node{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+  .stage-node .dot{width:14px;height:14px;border-radius:50%;background:var(--line);border:2px solid var(--white);box-shadow:0 0 0 2px var(--line);position:relative;z-index:2;}
+  .stage-node .stage-name{font-size:11.5px;margin-top:10px;color:var(--slate);font-weight:600;text-align:center;}
+  .stage-node .count{font-family:Georgia,serif;font-size:22px;color:var(--deep-navy);margin-top:2px;}
+  .stage-track{position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--line);z-index:1;}
+  .stage-node:last-child .stage-track{display:none;}
+  .stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:16px;
+    margin:26px 40px 8px;
+  }
+  .stat-card{
+    border-radius:10px;padding:20px 22px;font-family:sans-serif;
+    min-height:104px;display:flex;flex-direction:column;justify-content:space-between;
+    border:1px solid rgba(0,0,0,0.04);
+  }
+  .stat-card .num{font-family:Georgia,serif;font-size:34px;font-weight:600;color:var(--deep-navy);}
+  .stat-card .lbl{font-size:11.5px;letter-spacing:0.5px;color:var(--ink);font-weight:700;text-transform:uppercase;margin-top:8px;}
+  .stat-card .sub2{font-size:11px;color:rgba(28,35,51,0.6);margin-top:1px;}
+  .c-total{background:#F4E9C4;}
+  .c-signed{background:#D6E8DC;}
+  .c-live{background:#CFE0E9;}
+  .c-pending{background:#F0DCD3;}
+  .c-pie{background:#E4DCF2;}
+  .controls{
+    display:flex;justify-content:space-between;align-items:center;
+    margin:34px 40px 14px;flex-wrap:wrap;gap:12px;
+  }
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .tab{
+    font-family:sans-serif;font-size:12.5px;font-weight:700;letter-spacing:0.3px;
+    padding:9px 16px;border-radius:20px;border:1px solid var(--line);
+    background:var(--white);color:var(--slate);cursor:pointer;transition:all .15s ease;
+    text-transform:uppercase;
+  }
+  .tab:hover{border-color:var(--navy);color:var(--navy);}
+  .tab.active{background:var(--deep-navy);color:var(--cream);border-color:var(--deep-navy);}
+  .right-controls{display:flex;gap:10px;align-items:center;}
+  .searchbox{
+    font-family:sans-serif;font-size:13px;padding:9px 14px;border-radius:20px;
+    border:1px solid var(--line);background:var(--white);width:200px;color:var(--ink);
+  }
+  .searchbox:focus{outline:none;border-color:var(--gold);}
+  .sort-select{
+    font-family:sans-serif;font-size:12.5px;padding:9px 12px;border-radius:20px;
+    border:1px solid var(--line);background:var(--white);color:var(--ink);font-weight:600;
+  }
+  .add-btn{
+    font-family:sans-serif;font-size:12.5px;font-weight:700;letter-spacing:0.3px;
+    padding:9px 18px;border-radius:20px;border:1px solid var(--deep-navy);
+    background:var(--deep-navy);color:var(--cream);cursor:pointer;white-space:nowrap;
+  }
+  .add-btn:hover{background:var(--navy);}
+  .table-wrap{margin:0 40px 60px;background:var(--white);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-family:sans-serif;}
+  thead th{
+    text-align:left;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--slate);font-weight:700;padding:14px 16px;border-bottom:1px solid var(--line);
+    background:#FBFAF7;white-space:nowrap;
+  }
+  tbody td{padding:16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px;}
+  tbody tr{cursor:pointer;transition:background .12s ease;}
+  tbody tr:hover{background:#FAF7F0;}
+  tbody tr:last-child td{border-bottom:none;}
+  .t-id{font-family:"SF Mono","Roboto Mono",monospace;font-size:12px;color:var(--slate);}
+  .t-title{font-weight:700;color:var(--deep-navy);font-size:14px;margin-bottom:3px;}
+  .t-overview{color:var(--slate);font-size:12.5px;line-height:1.4;max-width:320px;}
+  .tag{
+    display:inline-block;font-size:11px;padding:3px 9px;border-radius:5px;
+    background:#EFEAE0;color:var(--navy);font-weight:600;border:1px solid var(--line);
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+    padding:5px 11px;border-radius:14px;white-space:nowrap;
+  }
+  .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .b-briefing{background:#F6EBD6;color:#8A6A2F;}
+  .b-design{background:#E9E4F3;color:#5B4C8A;}
+  .b-signedoff{background:#DCEEE1;color:#2F6B44;}
+  .b-building{background:#DCE7F4;color:#2A5488;}
+  .b-live{background:#D3EEDC;color:#1F6B3B;}
+  .b-completed{background:#E9E5DB;color:#6B6458;}
+  .type-pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    padding:5px 11px;border-radius:14px;white-space:nowrap;
+  }
+  .type-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .type-abtest{background:#DCE7F4;color:#2A5488;}
+  .type-jdi{background:#F6EBD6;color:#8A6A2F;}
+  .signoff-pending{color:var(--red);font-weight:700;font-size:12.5px;}
+  .signoff-yes{color:#2F6B44;font-weight:700;font-size:12.5px;}
+  .tbc{color:#A79A82;font-style:italic;}
+  .pie-pill{
+    display:inline-block;font-family:Georgia,serif;font-weight:700;font-size:14px;
+    padding:4px 12px;border-radius:6px;border:1px solid transparent;
+  }
+  .pie-high{background:#DCEEE1;color:var(--green);border-color:#BFE0CB;}
+  .pie-mid{background:#F6EBD6;color:var(--amber);border-color:#EBDBB2;}
+  .pie-low{background:#F3E3DC;color:var(--red);border-color:#E8CBBC;}
+  .pie-none{background:#EEEBE3;color:#A79A82;font-style:italic;font-weight:400;font-size:12.5px;}
+  .overlay{
+    position:fixed;inset:0;background:rgba(11,27,55,0.35);z-index:40;
+    display:none;
+  }
+  .overlay.open{display:block;}
+  .drawer{
+    position:fixed;top:0;right:0;height:100%;width:100vw;max-width:100vw;
+    background:var(--cream);z-index:41;box-shadow:-8px 0 30px rgba(0,0,0,0.15);
+    transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    padding:22px 48px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:flex-start;
+    background:var(--white);position:sticky;top:0;z-index:2;
+  }
+  .drawer-head .id{font-family:monospace;font-size:12px;color:var(--slate);margin-bottom:6px;}
+  .drawer-head h2{margin:0;font-size:26px;color:var(--deep-navy);font-weight:600;max-width:600px;}
+  .close-btn{
+    background:none;border:1px solid var(--line);width:36px;height:36px;border-radius:50%;
+    cursor:pointer;font-size:16px;color:var(--slate);flex-shrink:0;
+  }
+  .close-btn:hover{border-color:var(--navy);color:var(--navy);}
+  .drawer-body{padding:32px 48px 80px;font-family:sans-serif;max-width:1400px;margin:0 auto;}
+  .drawer-grid{display:grid;grid-template-columns:1fr 620px;gap:0 48px;align-items:start;}
+  .drawer-col-shots{position:sticky;top:0;}
+  .field-block{margin-bottom:22px;}
+  .field-block .flabel{
+    font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;
+    color:var(--slate);margin-bottom:8px;
+  }
+  .field-block .fval{font-size:14px;line-height:1.6;color:var(--ink);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  textarea.notes,input.text-input{
+    width:100%;font-family:sans-serif;font-size:13.5px;padding:11px 14px;
+    border:1px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink);
+  }
+  textarea.notes{min-height:70px;resize:vertical;}
+  .stage-select,.sign-select,.type-select,.page-select,.device-select{
+    font-family:sans-serif;font-size:13.5px;font-weight:600;padding:11px 38px 11px 14px;
+    border-radius:8px;border:1px solid var(--line);background-color:var(--white);color:var(--ink);
+    width:100%;height:44px;appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    cursor:pointer;transition:border-color .15s ease;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235B6478' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;
+  }
+  .stage-select:hover,.sign-select:hover,.type-select:hover,.page-select:hover,.device-select:hover{border-color:var(--gold);}
+  .stage-select:focus,.sign-select:focus,.type-select:focus,.page-select:focus,.device-select:focus{outline:none;border-color:var(--navy);}
+  .date-input{
+    font-family:sans-serif;font-size:13.5px;font-weight:600;padding:11px 14px;
+    border-radius:8px;border:1px solid var(--line);background:var(--white);color:var(--ink);
+    width:100%;height:44px;color-scheme:light;
+  }
+  .num-input{
+    font-family:sans-serif;font-size:12.5px;padding:8px 10px;border-radius:6px;
+    border:1px solid var(--line);background:var(--white);color:var(--ink);width:100%;
+  }
+  .pie-box{
+    background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:22px;
+  }
+  .pie-box .flabel{margin-bottom:12px;}
+  .pie-total-row{
+    display:flex;justify-content:space-between;align-items:center;margin-top:14px;
+    padding-top:14px;border-top:1px dashed var(--line);
+  }
+  .pie-total-row .ttl{font-size:11.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:0.8px;}
+  .num-input-wrap{text-align:center;}
+  .num-input-wrap .nl{font-size:10.5px;color:var(--slate);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;}
+  .num-input{text-align:center;}
+  .save-note{font-size:11px;color:var(--slate);margin-top:24px;border-top:1px dashed var(--line);padding-top:14px;}
+  .drawer-actions{display:flex;gap:10px;margin-top:26px;}
+  .btn-primary{
+    flex:1;font-family:sans-serif;font-weight:700;font-size:13px;padding:12px;border-radius:8px;
+    border:1px solid var(--deep-navy);background:var(--deep-navy);color:var(--cream);cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--navy);}
+  .btn-secondary{
+    font-family:sans-serif;font-weight:700;font-size:13px;padding:12px 18px;border-radius:8px;
+    border:1px solid var(--line);background:var(--white);color:var(--slate);cursor:pointer;
+  }
+  .required-hint{font-size:11px;color:var(--red);margin-top:5px;display:none;}
+  .th-sortable{cursor:pointer;}
+  .th-sortable:hover{color:var(--navy);}
+  .shot-section{margin-bottom:22px;}
+  .shot-section .flabel{margin-bottom:10px;}
+  .shot-view-toggle{
+    display:flex;gap:4px;background:#EFEAE0;padding:4px;border-radius:10px;margin-bottom:16px;
+  }
+  .shot-view-btn{
+    flex:1;font-family:sans-serif;font-size:12.5px;font-weight:700;padding:9px 0;
+    border-radius:7px;border:none;background:transparent;color:var(--slate);cursor:pointer;
+    text-align:center;transition:all .15s ease;
+  }
+  .shot-view-btn.active{background:var(--white);color:var(--deep-navy);box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+  .shot-view-btn:hover:not(.active){color:var(--navy);}
+  .shot-box{
+    border:1px dashed var(--line);border-radius:10px;background:var(--white);
+    padding:14px;margin-bottom:18px;
+  }
+  .shot-box .shot-tag{
+    font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;
+    color:var(--slate);margin-bottom:10px;display:block;
+  }
+  .shot-box.variant .shot-tag{color:var(--navy);}
+  .dropzone{
+    width:100%;min-height:420px;border-radius:8px;background:#FAF8F3;
+    border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;
+    overflow:hidden;cursor:pointer;transition:border-color .15s ease, background .15s ease;
+    position:relative;
+  }
+  .dropzone:hover{border-color:var(--gold);}
+  .dropzone.dragover{border-color:var(--navy);background:#F1ECDE;}
+  .dropzone img{width:100%;height:auto;display:block;}
+  .dropzone .empty{font-family:sans-serif;font-size:12.5px;color:#A79A82;font-style:italic;padding:20px;text-align:center;line-height:1.6;}
+  .dropzone input[type="file"]{display:none;}
+  .shot-remove-btn{
+    font-family:sans-serif;font-size:11.5px;font-weight:700;color:var(--red);background:none;
+    border:none;cursor:pointer;margin-top:8px;padding:0;
+  }
+  .shot-remove-btn:hover{text-decoration:underline;}
+  .link-field-row{display:flex;gap:8px;align-items:stretch;}
+  .link-field-row input.text-input{flex:1;}
+  .link-open-btn{
+    font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);
+    background:var(--white);border:1px solid var(--line);border-radius:8px;
+    padding:0 14px;display:flex;align-items:center;white-space:nowrap;text-decoration:none;
+    transition:border-color .15s ease;
+  }
+  .link-open-btn:hover{border-color:var(--gold);color:var(--gold);}
+  footer{
+    padding:30px 40px 50px;font-family:sans-serif;font-size:11.5px;color:var(--slate);
+    border-top:1px solid var(--line);
+  }
+  @media (max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    header,.hero,.controls,.table-wrap,.pipeline-strip{margin-left:16px;margin-right:16px;padding-left:16px;padding-right:16px;}
+    table{font-size:12px;}
+    .t-overview{max-width:160px;}
+    .grid3{grid-template-columns:1fr;}
+    .drawer-grid{grid-template-columns:1fr;}
+    .drawer-col-shots{position:static;}
+    .dropzone{min-height:220px;}
+    .drawer-head{padding:18px 20px;}
+    .drawer-body{padding:20px 20px 60px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">D</div>
+    <div class="names">
+      <div class="k">DOULTON</div>
+      <div class="d">CRO Test Pipeline · Internal Tracker</div>
+    </div>
+  </div>
+  <div class="updated sans">Last updated <b id="lastUpdated">—</b></div>
+</header>
+
+<div class="hero">
+  <h1>A/B Test Pipeline Tracker</h1>
+</div>
+
+<div class="pipeline-strip" id="pipelineStrip">
+  <div class="label">Pipeline overview</div>
+  <div class="stages" id="stagesRow"></div>
+</div>
+
+<div class="stats" id="statCards"></div>
+
+<div class="controls">
+  <div class="tabs" id="tabs"></div>
+  <div class="right-controls">
+    <select class="sort-select" id="pageFilterSelect">
+      <option value="all">Page: All</option>
+    </select>
+    <select class="sort-select" id="sortSelect">
+      <option value="default">Sort: Pipeline order</option>
+      <option value="pie-desc">Sort: PIE score (high → low)</option>
+      <option value="pie-asc">Sort: PIE score (low → high)</option>
+    </select>
+    <input class="searchbox sans" id="searchBox" placeholder="Search tests…" />
+    <button class="add-btn" id="addBtn">+ Add test</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Test</th>
+        <th>Page</th>
+        <th>Device</th>
+        <th>Sign-off</th>
+        <th>Stage</th>
+        <th>Type</th>
+        <th>Est. live date</th>
+        <th class="th-sortable" id="pieHeader">PIE ↕</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <div class="id" id="dId">—</div>
+      <h2 id="dTitle">—</h2>
+    </div>
+    <button class="close-btn" id="closeBtn">✕</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const PAGE_OPTIONS = ['Homepage','Search','Navigation','PLP','PDP','Checkout'];
+const DEVICE_OPTIONS = ['Desktop','Mobile'];
+
+const STAGES = [
+  {key:'briefing',   name:'Briefing',    color:'var(--stage-briefing)'},
+  {key:'design',     name:'Design',      color:'var(--stage-design)'},
+  {key:'signedoff',  name:'Signed Off',  color:'var(--stage-signedoff)'},
+  {key:'building',   name:'Building',    color:'var(--stage-building)'},
+  {key:'live',       name:'Live',        color:'var(--stage-live)'},
+  {key:'completed',  name:'Completed',   color:'var(--stage-completed)'},
+];
+
+let TESTS = [
+  {
+    id:'DLTN01', page:'Homepage', device:'Mobile / Desktop',
+    title:'Hamburger Menu Intent Match',
+    overview:'Match tiles to the 4 confirmed intents from the hamburger menu (with new layout).',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN02', page:'Homepage', device:'Mobile / Desktop',
+    title:'Hero CTA: Shop All vs Shop Water Filters',
+    overview:'Testing main hero banner CTA (Shop all vs Shop Water filters).',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN03', page:'Homepage', device:'Mobile / Desktop',
+    title:'Homepage Redesign',
+    overview:'Testing a redesign of the homepage.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN04', page:'Navigation', device:'Desktop',
+    title:'Logo Position & Search Bar Overhaul',
+    overview:'Moving the Doulton logo to the left and implementing an open search bar (new software platform), removing the search bar icon.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN05', page:'Navigation', device:'Mobile / Desktop',
+    title:'Menu Restructure for Product Discovery',
+    overview:'Restructuring the menu with a streamlined version, optimising product discovery.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN06', page:'Search', device:'Mobile / Desktop',
+    title:'Popular Searches Overlay',
+    overview:'Adding popular searches into the initial search overlay to guide users to the most-searched-for areas.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN07', page:'Search', device:'Mobile / Desktop',
+    title:'Search Result Relevance',
+    overview:'Ensuring the right product results are being presented.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+  {
+    id:'DLTN08', page:'Search', device:'Mobile / Desktop',
+    title:'Best Sellers on Search Overlay',
+    overview:'Presenting best-selling products on the initial overlay to guide users to the most popular products.',
+    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    potential:null, importance:null, ease:null,
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:'',
+    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+  },
+];
+
+const SUPABASE_URL = 'https://pzrnopycnrebsayjjllk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eXjpOQEb7O3mRo-ohUKUZg_1s10Sywh';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const FIELD_TO_COLUMN = {
+  title:'title', overview:'overview', page:'page', device:'device', stage:'stage',
+  testType:'test_type', signOff:'sign_off', liveDate:'live_date',
+  potential:'potential', importance:'importance', ease:'ease',
+  testPlan:'test_plan', mockupUrl:'mockup_url', testResult:'test_result', testLearnings:'test_learnings',
+  desktopControlImageUrl:'desktop_control_url', desktopVariantImageUrl:'desktop_variant_url',
+  mobileControlImageUrl:'mobile_control_url', mobileVariantImageUrl:'mobile_variant_url'
+};
+
+function rowToTest(row){
+  const t = { id: row.id };
+  Object.keys(FIELD_TO_COLUMN).forEach(field=>{
+    const col = FIELD_TO_COLUMN[field];
+    t[field] = row[col] === null || row[col] === undefined
+      ? (['potential','importance','ease'].includes(field) ? null : '')
+      : row[col];
+  });
+  return t;
+}
+
+function testToRow(t){
+  const row = { id: t.id };
+  Object.keys(FIELD_TO_COLUMN).forEach(field=>{ row[FIELD_TO_COLUMN[field]] = t[field] ?? null; });
+  return row;
+}
+
+async function loadTestsFromSupabase(){
+  try{
+    const { data, error } = await sb.from('tests').select('*').order('id');
+    if(error) throw error;
+    if(data && data.length){
+      TESTS = data.map(rowToTest);
+    }
+  }catch(e){
+    console.warn('Could not reach Supabase — showing local fallback data.', e);
+  }
+  renderAll();
+}
+
+async function updateTestRemote(id, patch){
+  const row = {};
+  Object.keys(patch).forEach(field=>{
+    if(FIELD_TO_COLUMN[field]) row[FIELD_TO_COLUMN[field]] = patch[field];
+  });
+  row.updated_at = new Date().toISOString();
+  const { error } = await sb.from('tests').update(row).eq('id', id);
+  if(error) console.error('Supabase update failed:', error);
+}
+
+async function insertTestRemote(t){
+  const { error } = await sb.from('tests').insert([testToRow(t)]);
+  if(error) console.error('Supabase insert failed:', error);
+}
+
+// Live sync — refresh the table view whenever anyone else changes a test
+sb.channel('tests-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'tests' }, ()=>{
+    loadTestsFromSupabase();
+  })
+  .subscribe();
+
+document.getElementById('lastUpdated').textContent =
+  new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+let activeFilter = 'all';
+let activePageFilter = 'all';
+let searchTerm = '';
+let sortMode = 'default';
+
+function stageInfo(key){ return STAGES.find(s=>s.key===key) || STAGES[0]; }
+
+function pieScore(t){
+  const {potential,importance,ease} = t;
+  if(potential==null || importance==null || ease==null) return null;
+  return Math.round(((Number(potential)+Number(importance)+Number(ease))/3)*10)/10;
+}
+
+function pieBadgeHtml(t){
+  const score = pieScore(t);
+  if(score==null) return `<span class="pie-pill pie-none">Not scored</span>`;
+  let cls = 'pie-mid';
+  if(score>=7) cls='pie-high';
+  else if(score<4) cls='pie-low';
+  return `<span class="pie-pill ${cls}">${score.toFixed(1)}</span>`;
+}
+
+function renderPageFilter(){
+  const select = document.getElementById('pageFilterSelect');
+  const pages = [...new Set(TESTS.map(t=>t.page))].sort();
+  const current = activePageFilter;
+  select.innerHTML = `<option value="all">Page: All</option>` +
+    pages.map(p=>`<option value="${p}" ${current===p?'selected':''}>Page: ${p}</option>`).join('');
+  select.value = pages.includes(current) ? current : 'all';
+  if(!pages.includes(current)) activePageFilter = 'all';
+}
+
+function renderTabs(){
+  const tabs = document.getElementById('tabs');
+  const all = [{key:'all', name:'All'}, ...STAGES];
+  tabs.innerHTML = all.map(t=>{
+    const count = t.key==='all' ? TESTS.length : TESTS.filter(x=>x.stage===t.key).length;
+    return `<button class="tab ${activeFilter===t.key?'active':''}" data-key="${t.key}">${t.name} · ${count}</button>`;
+  }).join('');
+  tabs.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ activeFilter = btn.dataset.key; renderAll(); });
+  });
+}
+
+function renderStrip(){
+  const row = document.getElementById('stagesRow');
+  row.innerHTML = STAGES.map((s,i)=>{
+    const count = TESTS.filter(t=>t.stage===s.key).length;
+    return `
+      <div class="stage-node" style="--dotcolor:${s.color}">
+        ${i<STAGES.length-1?'<div class="stage-track"></div>':''}
+        <div class="dot" style="${count>0?`background:${s.color};box-shadow:0 0 0 2px ${s.color}`:''}"></div>
+        <div class="stage-name sans">${s.name}</div>
+        <div class="count">${count}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderStats(){
+  const total = TESTS.length;
+  const signed = TESTS.filter(t=>t.signOff==='internal' || t.signOff==='kubix').length;
+  const live = TESTS.filter(t=>t.stage==='live').length;
+  const pending = TESTS.filter(t=>t.signOff==='pending').length;
+  const scored = TESTS.map(pieScore).filter(s=>s!=null);
+  const avgPie = scored.length ? (scored.reduce((a,b)=>a+b,0)/scored.length).toFixed(1) : '—';
+  const cards = [
+    {cls:'c-total', num:total, lbl:'Total tests', sub:'On the current brief'},
+    {cls:'c-signed', num:signed, lbl:'Signed off', sub:`${total?Math.round(signed/total*100):0}% of pipeline`},
+    {cls:'c-live', num:live, lbl:'Live', sub:'Currently running'},
+    {cls:'c-pending', num:pending, lbl:'Awaiting sign-off', sub:'Needs a decision'},
+    {cls:'c-pie', num:avgPie, lbl:'Avg PIE score', sub:`${scored.length}/${total} scored`},
+  ];
+  document.getElementById('statCards').innerHTML = cards.map(c=>`
+    <div class="stat-card ${c.cls}">
+      <div class="num">${c.num}</div>
+      <div>
+        <div class="lbl">${c.lbl}</div>
+        <div class="sub2">${c.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filteredTests(){
+  let rows = TESTS.filter(t=>{
+    const matchesStage = activeFilter==='all' || t.stage===activeFilter;
+    const matchesPage = activePageFilter==='all' || t.page===activePageFilter;
+    const s = searchTerm.toLowerCase();
+    const matchesSearch = !s || (t.title+t.overview+t.id+t.page).toLowerCase().includes(s);
+    return matchesStage && matchesPage && matchesSearch;
+  });
+  if(sortMode==='pie-desc' || sortMode==='pie-asc'){
+    rows = rows.slice().sort((a,b)=>{
+      const sa = pieScore(a), sb = pieScore(b);
+      if(sa==null && sb==null) return 0;
+      if(sa==null) return 1;
+      if(sb==null) return -1;
+      return sortMode==='pie-desc' ? sb-sa : sa-sb;
+    });
+  }
+  return rows;
+}
+
+function badgeHtml(t){
+  const info = stageInfo(t.stage);
+  const cls = {briefing:'b-briefing',design:'b-design',signedoff:'b-signedoff',building:'b-building',live:'b-live',completed:'b-completed'}[t.stage];
+  return `<span class="badge ${cls}">${info.name}</span>`;
+}
+
+function typeBadgeHtml(t){
+  const isJdi = t.testType === 'jdi';
+  return `<span class="type-pill ${isJdi?'type-jdi':'type-abtest'}">${isJdi?'JDI':'A/B Test'}</span>`;
+}
+
+function signOffHtml(t){
+  if(t.signOff==='internal') return '<span class="signoff-yes">✓ Internal</span>';
+  if(t.signOff==='kubix') return '<span class="signoff-yes">✓ Kubix</span>';
+  return '<span class="signoff-pending">Pending</span>';
+}
+
+function renderTable(){
+  const rows = filteredTests();
+  const body = document.getElementById('tableBody');
+  if(rows.length===0){
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(t=>`
+    <tr data-id="${t.id}">
+      <td class="t-id">${t.id}</td>
+      <td>
+        <div class="t-title">${t.title}</div>
+        <div class="t-overview">${t.overview}</div>
+        <span class="tag" style="margin-top:6px;display:inline-block;">${t.page}</span>
+      </td>
+      <td>${t.page}</td>
+      <td class="sans" style="color:var(--slate);font-size:12.5px;">${t.device}</td>
+      <td>${signOffHtml(t)}</td>
+      <td>${badgeHtml(t)}</td>
+      <td>${typeBadgeHtml(t)}</td>
+      <td class="sans">${t.liveDate ? t.liveDate : '<span class="tbc">TBC</span>'}</td>
+      <td>${pieBadgeHtml(t)}</td>
+    </tr>
+  `).join('');
+  body.querySelectorAll('tr').forEach(tr=>{
+    tr.addEventListener('click', ()=> openDrawer(tr.dataset.id));
+  });
+}
+
+function renderAll(){
+  renderTabs();
+  renderPageFilter();
+  renderStrip();
+  renderStats();
+  renderTable();
+}
+
+document.getElementById('searchBox').addEventListener('input', e=>{
+  searchTerm = e.target.value;
+  renderTable();
+});
+document.getElementById('pageFilterSelect').addEventListener('change', e=>{
+  activePageFilter = e.target.value;
+  renderTable();
+});
+document.getElementById('sortSelect').addEventListener('change', e=>{
+  sortMode = e.target.value;
+  renderTable();
+});
+document.getElementById('pieHeader').addEventListener('click', ()=>{
+  sortMode = sortMode==='pie-desc' ? 'pie-asc' : 'pie-desc';
+  document.getElementById('sortSelect').value = sortMode;
+  renderTable();
+});
+
+const overlay = document.getElementById('overlay');
+const drawer = document.getElementById('drawer');
+
+function pieFieldsHtml(t){
+  return `
+    <div class="pie-box">
+      <div class="flabel">PIE score</div>
+      <div class="grid3">
+        <div class="num-input-wrap">
+          <span class="nl">Potential</span>
+          <input class="num-input" type="number" min="1" max="10" step="1" data-field="potential" value="${t.potential??''}" placeholder="1–10" />
+        </div>
+        <div class="num-input-wrap">
+          <span class="nl">Importance</span>
+          <input class="num-input" type="number" min="1" max="10" step="1" data-field="importance" value="${t.importance??''}" placeholder="1–10" />
+        </div>
+        <div class="num-input-wrap">
+          <span class="nl">Ease</span>
+          <input class="num-input" type="number" min="1" max="10" step="1" data-field="ease" value="${t.ease??''}" placeholder="1–10" />
+        </div>
+      </div>
+      <div class="pie-total-row">
+        <span class="ttl">Total PIE</span>
+        ${pieBadgeHtml(t)}
+      </div>
+    </div>
+  `;
+}
+
+let activeShotView = 'desktop';
+let activeShotTestId = null;
+
+function openDrawer(id){
+  const t = TESTS.find(x=>x.id===id);
+  if(!t) return;
+  if(activeShotTestId !== id){ activeShotView = 'desktop'; activeShotTestId = id; }
+  const controlField = activeShotView + 'ControlImageUrl';
+  const variantField = activeShotView + 'VariantImageUrl';
+  document.getElementById('dId').textContent = `${t.id} · ${t.page}`;
+  document.getElementById('dTitle').textContent = t.title;
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="drawer-grid">
+      <div class="drawer-col-main">
+        <div class="field-block">
+          <div class="flabel">Overview</div>
+          <div class="fval">${t.overview}</div>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Page / section</div>
+            <select class="page-select" data-field="page">
+              ${PAGE_OPTIONS.map(p=>`<option value="${p}" ${t.page===p?'selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Device</div>
+            <select class="device-select" data-field="device">
+              ${DEVICE_OPTIONS.map(d=>`<option value="${d}" ${t.device===d?'selected':''}>${d}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Sign-off status</div>
+            <select class="sign-select" data-field="signOff">
+              <option value="pending" ${t.signOff==='pending'?'selected':''}>Pending</option>
+              <option value="internal" ${t.signOff==='internal'?'selected':''}>Internal</option>
+              <option value="kubix" ${t.signOff==='kubix'?'selected':''}>Kubix</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Pipeline stage</div>
+            <select class="stage-select" data-field="stage">
+              ${STAGES.map(s=>`<option value="${s.key}" ${t.stage===s.key?'selected':''}>${s.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Type</div>
+            <select class="type-select" data-field="testType">
+              <option value="abtest" ${t.testType==='abtest'?'selected':''}>A/B Test</option>
+              <option value="jdi" ${t.testType==='jdi'?'selected':''}>JDI</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Est. live date</div>
+            <input class="date-input" type="date" data-field="liveDate" value="${t.liveDate||''}" />
+          </div>
+        </div>
+        ${pieFieldsHtml(t)}
+        <div class="field-block">
+          <div class="flabel">Test plan URL</div>
+          <div class="link-field-row">
+            <input class="text-input" type="url" data-field="testPlan" placeholder="Paste link to test plan / brief…" value="${t.testPlan||''}" />
+            ${t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : ''}
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="flabel">Mockup URL</div>
+          <div class="link-field-row">
+            <input class="text-input" type="url" data-field="mockupUrl" placeholder="Paste link to Figma / mockup…" value="${t.mockupUrl||''}" />
+            ${t.mockupUrl ? `<a class="link-open-btn" href="${t.mockupUrl}" target="_blank" rel="noopener">Open ↗</a>` : ''}
+          </div>
+        </div>
+        <div class="field-block">
+          <div class="flabel">Test result</div>
+          <textarea class="notes" data-field="testResult" placeholder="Add result once live…">${t.testResult}</textarea>
+        </div>
+        <div class="field-block">
+          <div class="flabel">Test learnings</div>
+          <textarea class="notes" data-field="testLearnings" placeholder="Add learnings once complete…">${t.testLearnings}</textarea>
+        </div>
+      </div>
+      <div class="drawer-col-shots">
+        <div class="shot-section">
+          <div class="shot-view-toggle">
+            <button class="shot-view-btn ${activeShotView==='desktop'?'active':''}" data-view="desktop" type="button">Desktop</button>
+            <button class="shot-view-btn ${activeShotView==='mobile'?'active':''}" data-view="mobile" type="button">Mobile</button>
+          </div>
+          <div class="shot-box">
+            <span class="shot-tag">Control (A)</span>
+            <label class="dropzone" id="controlDropzone">
+              ${t[controlField]
+                ? `<img src="${t[controlField]}" alt="Control screenshot" />`
+                : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
+              <input type="file" accept="image/*" id="controlFileInput" />
+            </label>
+            ${t[controlField] ? `<button class="shot-remove-btn" id="controlRemoveBtn">Remove image</button>` : ''}
+          </div>
+          <div class="shot-box variant">
+            <span class="shot-tag">Variant (B)</span>
+            <label class="dropzone" id="variantDropzone">
+              ${t[variantField]
+                ? `<img src="${t[variantField]}" alt="Variant screenshot" />`
+                : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
+              <input type="file" accept="image/*" id="variantFileInput" />
+            </label>
+            ${t[variantField] ? `<button class="shot-remove-btn" id="variantRemoveBtn">Remove image</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll('#drawerBody [data-field]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const field = el.dataset.field;
+      let value = el.value;
+      if(['potential','importance','ease'].includes(field)){
+        value = value===''? null : Math.max(1, Math.min(10, Number(value)));
+      }
+      t[field] = value;
+      updateTestRemote(t.id, {[field]:value});
+      renderAll();
+      openDrawer(t.id);
+    });
+  });
+
+  document.querySelectorAll('#drawerBody .shot-view-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeShotView = btn.dataset.view;
+      openDrawer(t.id);
+    });
+  });
+
+  function readImageFile(file, field){
+    if(!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      t[field] = reader.result;
+      updateTestRemote(t.id, {[field]: reader.result});
+      renderAll();
+      openDrawer(t.id);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function wireDropzone(zoneId, inputId, removeBtnId, field){
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+    if(!zone) return;
+    zone.addEventListener('click', e=>{ if(e.target.tagName!=='INPUT') input.click(); });
+    input.addEventListener('change', ()=> readImageFile(input.files[0], field));
+    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      readImageFile(e.dataTransfer.files[0], field);
+    });
+    const removeBtn = document.getElementById(removeBtnId);
+    if(removeBtn){
+      removeBtn.addEventListener('click', e=>{
+        e.stopPropagation();
+        t[field] = '';
+        updateTestRemote(t.id, {[field]:''});
+        renderAll();
+        openDrawer(t.id);
+      });
+    }
+  }
+  wireDropzone('controlDropzone','controlFileInput','controlRemoveBtn',controlField);
+  wireDropzone('variantDropzone','variantFileInput','variantRemoveBtn',variantField);
+
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+}
+
+function nextId(){
+  const nums = TESTS
+    .map(t=>t.id.match(/DLTN(\d+)/))
+    .filter(Boolean)
+    .map(m=>parseInt(m[1],10));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return 'DLTN' + String(next).padStart(2,'0');
+}
+
+function openAddDrawer(){
+  const newId = nextId();
+  document.getElementById('dId').textContent = `${newId} · New test`;
+  document.getElementById('dTitle').textContent = 'Add a test';
+
+  document.getElementById('drawerBody').innerHTML = `
+    <div class="drawer-grid">
+      <div class="drawer-col-main">
+        <div class="field-block">
+          <div class="flabel">Test name</div>
+          <input class="text-input" id="newTitle" placeholder="e.g. Sticky Add to Basket Bar" />
+        </div>
+        <div class="field-block">
+          <div class="flabel">Overview / hypothesis</div>
+          <textarea class="notes" id="newOverview" placeholder="What's changing and why…"></textarea>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Page / section</div>
+            <select class="page-select" id="newPage">
+              ${PAGE_OPTIONS.map(p=>`<option value="${p}">${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Device</div>
+            <select class="device-select" id="newDevice">
+              ${DEVICE_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Sign-off status</div>
+            <select class="sign-select" id="newSignOff">
+              <option value="pending">Pending</option>
+              <option value="internal">Internal</option>
+              <option value="kubix">Kubix</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Pipeline stage</div>
+            <select class="stage-select" id="newStage">
+              ${STAGES.map(s=>`<option value="${s.key}">${s.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Type</div>
+            <select class="type-select" id="newType">
+              <option value="abtest">A/B Test</option>
+              <option value="jdi">JDI</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Est. live date</div>
+            <input class="date-input" type="date" id="newLiveDate" />
+          </div>
+        </div>
+        <div class="pie-box">
+          <div class="flabel">PIE score (optional — leave blank if not yet scored)</div>
+          <div class="grid3">
+            <div class="num-input-wrap">
+              <span class="nl">Potential</span>
+              <input class="num-input" type="number" min="1" max="10" step="1" id="newPotential" placeholder="1–10" />
+            </div>
+            <div class="num-input-wrap">
+              <span class="nl">Importance</span>
+              <input class="num-input" type="number" min="1" max="10" step="1" id="newImportance" placeholder="1–10" />
+            </div>
+            <div class="num-input-wrap">
+              <span class="nl">Ease</span>
+              <input class="num-input" type="number" min="1" max="10" step="1" id="newEase" placeholder="1–10" />
+            </div>
+          </div>
+        </div>
+        <div class="required-hint" id="reqHint">Give the test a name before saving.</div>
+        <div class="drawer-actions">
+          <button class="btn-primary" id="saveNewBtn">Save test</button>
+          <button class="btn-secondary" id="cancelNewBtn">Cancel</button>
+        </div>
+      </div>
+      <div class="drawer-col-shots">
+        <div class="shot-section" id="newShotSection"></div>
+      </div>
+    </div>
+  `;
+
+  let addShotView = 'desktop';
+  const newImages = {
+    desktopControlImageUrl:'', desktopVariantImageUrl:'',
+    mobileControlImageUrl:'', mobileVariantImageUrl:''
+  };
+
+  function renderAddShotSection(){
+    const controlField = addShotView + 'ControlImageUrl';
+    const variantField = addShotView + 'VariantImageUrl';
+    document.getElementById('newShotSection').innerHTML = `
+      <div class="shot-view-toggle">
+        <button class="shot-view-btn ${addShotView==='desktop'?'active':''}" data-view="desktop" type="button">Desktop</button>
+        <button class="shot-view-btn ${addShotView==='mobile'?'active':''}" data-view="mobile" type="button">Mobile</button>
+      </div>
+      <div class="shot-box">
+        <span class="shot-tag">Control (A)</span>
+        <label class="dropzone" id="newControlDropzone">
+          ${newImages[controlField]
+            ? `<img src="${newImages[controlField]}" alt="Control screenshot" />`
+            : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
+          <input type="file" accept="image/*" id="newControlFileInput" />
+        </label>
+      </div>
+      <div class="shot-box variant">
+        <span class="shot-tag">Variant (B)</span>
+        <label class="dropzone" id="newVariantDropzone">
+          ${newImages[variantField]
+            ? `<img src="${newImages[variantField]}" alt="Variant screenshot" />`
+            : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
+          <input type="file" accept="image/*" id="newVariantFileInput" />
+        </label>
+      </div>
+    `;
+    document.querySelectorAll('#newShotSection .shot-view-btn').forEach(btn=>{
+      btn.onclick = ()=>{ addShotView = btn.dataset.view; renderAddShotSection(); };
+    });
+    wireNewDropzone('newControlDropzone','newControlFileInput',controlField);
+    wireNewDropzone('newVariantDropzone','newVariantFileInput',variantField);
+  }
+
+  function readNewImageFile(file, field){
+    if(!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      newImages[field] = reader.result;
+      renderAddShotSection();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function wireNewDropzone(zoneId, inputId, field){
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+    if(!zone || !input) return;
+    zone.onclick = e=>{ if(e.target.tagName!=='INPUT') input.click(); };
+    input.onchange = ()=> readNewImageFile(input.files[0], field);
+    zone.ondragover = e=>{ e.preventDefault(); zone.classList.add('dragover'); };
+    zone.ondragleave = ()=> zone.classList.remove('dragover');
+    zone.ondrop = e=>{
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      readNewImageFile(e.dataTransfer.files[0], field);
+    };
+  }
+  renderAddShotSection();
+
+  document.getElementById('saveNewBtn').addEventListener('click', ()=>{
+    const title = document.getElementById('newTitle').value.trim();
+    if(!title){
+      document.getElementById('reqHint').style.display = 'block';
+      return;
+    }
+    const clamp = v => v===''? null : Math.max(1, Math.min(10, Number(v)));
+    const t = {
+      id: newId,
+      page: document.getElementById('newPage').value,
+      device: document.getElementById('newDevice').value,
+      title,
+      overview: document.getElementById('newOverview').value.trim(),
+      stage: document.getElementById('newStage').value,
+      testType: document.getElementById('newType').value,
+      signOff: document.getElementById('newSignOff').value,
+      liveDate: document.getElementById('newLiveDate').value,
+      potential: clamp(document.getElementById('newPotential').value),
+      importance: clamp(document.getElementById('newImportance').value),
+      ease: clamp(document.getElementById('newEase').value),
+      desktopControlImageUrl: newImages.desktopControlImageUrl,
+      desktopVariantImageUrl: newImages.desktopVariantImageUrl,
+      mobileControlImageUrl: newImages.mobileControlImageUrl,
+      mobileVariantImageUrl: newImages.mobileVariantImageUrl,
+      testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    };
+    TESTS.push(t);
+    insertTestRemote(t);
+    renderAll();
+    closeDrawer();
+  });
+  document.getElementById('cancelNewBtn').addEventListener('click', closeDrawer);
+
+  overlay.classList.add('open');
+  drawer.classList.add('open');
+}
+
+document.getElementById('addBtn').addEventListener('click', openAddDrawer);
+
+function closeDrawer(){
+  overlay.classList.remove('open');
+  drawer.classList.remove('open');
+}
+overlay.addEventListener('click', closeDrawer);
+document.getElementById('closeBtn').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+
+loadTestsFromSupabase();
+</script>
+</body>
+</html>
