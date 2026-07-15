@@ -369,6 +369,13 @@
     <select class="sort-select" id="pageFilterSelect">
       <option value="all">Page: All</option>
     </select>
+    <select class="sort-select" id="pieFilterSelect">
+      <option value="all">PIE: All</option>
+      <option value="high">PIE: High (7–10)</option>
+      <option value="mid">PIE: Medium (4–6.9)</option>
+      <option value="low">PIE: Low (1–3.9)</option>
+      <option value="unscored">PIE: Not scored</option>
+    </select>
     <select class="sort-select" id="sortSelect">
       <option value="default">Sort: Pipeline order</option>
       <option value="pie-desc">Sort: PIE score (high → low)</option>
@@ -598,6 +605,7 @@ document.getElementById('lastUpdated').textContent =
 
 let activeFilter = 'all';
 let activePageFilter = 'all';
+let activePieFilter = 'all';
 let searchTerm = '';
 let sortMode = 'default';
 
@@ -678,13 +686,24 @@ function renderStats(){
     </div>`).join('');
 }
 
+function matchesPieFilter(t){
+  if(activePieFilter==='all') return true;
+  const score = pieScore(t);
+  if(activePieFilter==='unscored') return score==null;
+  if(score==null) return false;
+  if(activePieFilter==='high') return score>=7;
+  if(activePieFilter==='mid') return score>=4 && score<7;
+  if(activePieFilter==='low') return score<4;
+  return true;
+}
+
 function filteredTests(){
   let rows = TESTS.filter(t=>{
     const matchesStage = activeFilter==='all' || t.stage===activeFilter;
     const matchesPage = activePageFilter==='all' || t.page===activePageFilter;
     const s = searchTerm.toLowerCase();
     const matchesSearch = !s || (t.title+t.overview+t.id+t.page).toLowerCase().includes(s);
-    return matchesStage && matchesPage && matchesSearch;
+    return matchesStage && matchesPage && matchesSearch && matchesPieFilter(t);
   });
   if(sortMode==='pie-desc' || sortMode==='pie-asc'){
     rows = rows.slice().sort((a,b)=>{
@@ -758,6 +777,10 @@ document.getElementById('searchBox').addEventListener('input', e=>{
 });
 document.getElementById('pageFilterSelect').addEventListener('change', e=>{
   activePageFilter = e.target.value;
+  renderTable();
+});
+document.getElementById('pieFilterSelect').addEventListener('change', e=>{
+  activePieFilter = e.target.value;
   renderTable();
 });
 document.getElementById('sortSelect').addEventListener('change', e=>{
