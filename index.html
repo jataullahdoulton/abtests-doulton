@@ -15,7 +15,9 @@
     --slate:#5B6478;
     --line:#DCD6C9;
     --white:#FFFFFF;
-    --stage-briefing:#C9A46B;
+    --stage-research:#8A9A8E;
+    --stage-briefed-kubix:#C9A46B;
+    --stage-briefed-internal:#B08A5A;
     --stage-design:#8E7FB8;
     --stage-signedoff:#5C8B6E;
     --stage-building:#3B6EA5;
@@ -158,7 +160,9 @@
     padding:5px 11px;border-radius:14px;white-space:nowrap;
   }
   .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
-  .b-briefing{background:#F6EBD6;color:#8A6A2F;}
+  .b-research{background:#E5E9E6;color:#4E5B52;}
+  .b-briefed-kubix{background:#F6EBD6;color:#8A6A2F;}
+  .b-briefed-internal{background:#F1E4D0;color:#7A5B2E;}
   .b-design{background:#E9E4F3;color:#5B4C8A;}
   .b-signedoff{background:#DCEEE1;color:#2F6B44;}
   .b-building{background:#DCE7F4;color:#2A5488;}
@@ -412,7 +416,9 @@ const PAGE_OPTIONS = ['Homepage','Search','Navigation','PLP','PDP','Checkout'];
 const DEVICE_OPTIONS = ['Desktop','Mobile'];
 
 const STAGES = [
-  {key:'briefing',   name:'Briefing',    color:'var(--stage-briefing)'},
+  {key:'research',         name:'Research / Hypothesis', color:'var(--stage-research)'},
+  {key:'briefed_kubix',    name:'Briefed – Kubix',       color:'var(--stage-briefed-kubix)'},
+  {key:'briefed_internal', name:'Briefed – Internal',    color:'var(--stage-briefed-internal)'},
   {key:'design',     name:'Design',      color:'var(--stage-design)'},
   {key:'signedoff',  name:'Signed Off',  color:'var(--stage-signedoff)'},
   {key:'building',   name:'Building',    color:'var(--stage-building)'},
@@ -425,81 +431,81 @@ let TESTS = [
     id:'DLTN01', page:'Homepage', device:'Mobile / Desktop',
     title:'Hamburger Menu Intent Match',
     overview:'Match tiles to the 4 confirmed intents from the hamburger menu (with new layout).',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN02', page:'Homepage', device:'Mobile / Desktop',
     title:'Hero CTA: Shop All vs Shop Water Filters',
     overview:'Testing main hero banner CTA (Shop all vs Shop Water filters).',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN03', page:'Homepage', device:'Mobile / Desktop',
     title:'Homepage Redesign',
     overview:'Testing a redesign of the homepage.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN04', page:'Navigation', device:'Desktop',
     title:'Logo Position & Search Bar Overhaul',
     overview:'Moving the Doulton logo to the left and implementing an open search bar (new software platform), removing the search bar icon.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN05', page:'Navigation', device:'Mobile / Desktop',
     title:'Menu Restructure for Product Discovery',
     overview:'Restructuring the menu with a streamlined version, optimising product discovery.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN06', page:'Search', device:'Mobile / Desktop',
     title:'Popular Searches Overlay',
     overview:'Adding popular searches into the initial search overlay to guide users to the most-searched-for areas.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN07', page:'Search', device:'Mobile / Desktop',
     title:'Search Result Relevance',
     overview:'Ensuring the right product results are being presented.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN08', page:'Search', device:'Mobile / Desktop',
     title:'Best Sellers on Search Overlay',
     overview:'Presenting best-selling products on the initial overlay to guide users to the most popular products.',
-    stage:'briefing', signOff:'pending', testType:'abtest', liveDate:'',
+    stage:'briefed_internal', signOff:'pending', testType:'abtest', liveDate:'',
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
 ];
 
@@ -530,7 +536,7 @@ const FIELD_TO_COLUMN = {
   title:'title', overview:'overview', page:'page', device:'device', stage:'stage',
   testType:'test_type', signOff:'sign_off', liveDate:'live_date',
   potential:'potential', importance:'importance', ease:'ease',
-  testPlan:'test_plan', mockupUrl:'mockup_url', testResult:'test_result', testLearnings:'test_learnings',
+  testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
   desktopControlImageUrl:'desktop_control_url', desktopVariantImageUrl:'desktop_variant_url',
   mobileControlImageUrl:'mobile_control_url', mobileVariantImageUrl:'mobile_variant_url'
 };
@@ -694,7 +700,7 @@ function filteredTests(){
 
 function badgeHtml(t){
   const info = stageInfo(t.stage);
-  const cls = {briefing:'b-briefing',design:'b-design',signedoff:'b-signedoff',building:'b-building',live:'b-live',completed:'b-completed'}[t.stage];
+  const cls = {research:'b-research',briefed_kubix:'b-briefed-kubix',briefed_internal:'b-briefed-internal',design:'b-design',signedoff:'b-signedoff',building:'b-building',live:'b-live',completed:'b-completed'}[t.stage];
   return `<span class="badge ${cls}">${info.name}</span>`;
 }
 
@@ -766,6 +772,17 @@ document.getElementById('pieHeader').addEventListener('click', ()=>{
 
 const overlay = document.getElementById('overlay');
 const drawer = document.getElementById('drawer');
+
+function cardLinkHtml(url){
+  if(!url) return '';
+  let label = 'Open card ↗';
+  try{
+    const host = new URL(url).hostname.toLowerCase();
+    if(host.includes('clickup.com')) label = 'Open in ClickUp ↗';
+    else if(host.includes('trello.com')) label = 'Open in Trello ↗';
+  }catch(e){}
+  return `<a class="link-open-btn" href="${url}" target="_blank" rel="noopener">${label}</a>`;
+}
 
 function pieScoreOptionsHtml(current){
   let html = `<option value="">–</option>`;
@@ -864,6 +881,13 @@ function openDrawer(id){
           </div>
         </div>
         ${pieFieldsHtml(t)}
+        <div class="field-block">
+          <div class="flabel">Briefing card link (ClickUp / Trello)</div>
+          <div class="link-field-row">
+            <input class="text-input" type="url" data-field="cardUrl" placeholder="Paste ClickUp or Trello card link…" value="${t.cardUrl||''}" />
+            ${cardLinkHtml(t.cardUrl)}
+          </div>
+        </div>
         <div class="field-block">
           <div class="flabel">Test plan URL</div>
           <div class="link-field-row">
@@ -1071,6 +1095,10 @@ function openAddDrawer(){
             </div>
           </div>
         </div>
+        <div class="field-block">
+          <div class="flabel">Briefing card link (ClickUp / Trello)</div>
+          <input class="text-input" type="url" id="newCardUrl" placeholder="Paste ClickUp or Trello card link…" />
+        </div>
         <div class="required-hint" id="reqHint">Give the test a name before saving.</div>
         <div class="drawer-actions">
           <button class="btn-primary" id="saveNewBtn">Save test</button>
@@ -1177,7 +1205,7 @@ function openAddDrawer(){
       desktopVariantImageUrl: newImages.desktopVariantImageUrl,
       mobileControlImageUrl: newImages.mobileControlImageUrl,
       mobileVariantImageUrl: newImages.mobileVariantImageUrl,
-      testPlan:'', mockupUrl:'', testResult:'', testLearnings:''
+      testPlan:'', mockupUrl:'', cardUrl: document.getElementById('newCardUrl').value.trim(), testResult:'', testLearnings:''
     };
     TESTS.push(t);
     insertTestRemote(t);
