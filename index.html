@@ -237,9 +237,15 @@
     width:100%;height:44px;color-scheme:light;
   }
   .num-input{
-    font-family:sans-serif;font-size:12.5px;padding:8px 10px;border-radius:6px;
-    border:1px solid var(--line);background:var(--white);color:var(--ink);width:100%;
+    font-family:sans-serif;font-size:13px;font-weight:600;padding:10px 30px 10px 10px;border-radius:6px;
+    border:1px solid var(--line);background-color:var(--white);color:var(--ink);width:100%;
+    height:40px;appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;
+    text-align:center;text-align-last:center;transition:border-color .15s ease;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235B6478' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center;
   }
+  .num-input:hover{border-color:var(--gold);}
+  .num-input:focus{outline:none;border-color:var(--navy);}
   .pie-box{
     background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:22px;
   }
@@ -251,7 +257,6 @@
   .pie-total-row .ttl{font-size:11.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:0.8px;}
   .num-input-wrap{text-align:center;}
   .num-input-wrap .nl{font-size:10.5px;color:var(--slate);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;}
-  .num-input{text-align:center;}
   .save-note{font-size:11px;color:var(--slate);margin-top:24px;border-top:1px dashed var(--line);padding-top:14px;}
   .drawer-actions{display:flex;gap:10px;margin-top:26px;}
   .btn-primary{
@@ -502,6 +507,25 @@ const SUPABASE_URL = 'https://pzrnopycnrebsayjjllk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eXjpOQEb7O3mRo-ohUKUZg_1s10Sywh';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const CLOUDINARY_CLOUD_NAME = 'glwni9jm';
+const CLOUDINARY_UPLOAD_PRESET = 'abtests-designs';
+
+async function uploadToCloudinary(file){
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error(`Cloudinary upload failed: ${errText}`);
+  }
+  const data = await res.json();
+  return data.secure_url;
+}
+
 const FIELD_TO_COLUMN = {
   title:'title', overview:'overview', page:'page', device:'device', stage:'stage',
   testType:'test_type', signOff:'sign_off', liveDate:'live_date',
@@ -743,6 +767,14 @@ document.getElementById('pieHeader').addEventListener('click', ()=>{
 const overlay = document.getElementById('overlay');
 const drawer = document.getElementById('drawer');
 
+function pieScoreOptionsHtml(current){
+  let html = `<option value="">–</option>`;
+  for(let i=1;i<=10;i++){
+    html += `<option value="${i}" ${Number(current)===i?'selected':''}>${i}</option>`;
+  }
+  return html;
+}
+
 function pieFieldsHtml(t){
   return `
     <div class="pie-box">
@@ -750,15 +782,15 @@ function pieFieldsHtml(t){
       <div class="grid3">
         <div class="num-input-wrap">
           <span class="nl">Potential</span>
-          <input class="num-input" type="number" min="1" max="10" step="1" data-field="potential" value="${t.potential??''}" placeholder="1–10" />
+          <select class="num-input pie-select" data-field="potential">${pieScoreOptionsHtml(t.potential)}</select>
         </div>
         <div class="num-input-wrap">
           <span class="nl">Importance</span>
-          <input class="num-input" type="number" min="1" max="10" step="1" data-field="importance" value="${t.importance??''}" placeholder="1–10" />
+          <select class="num-input pie-select" data-field="importance">${pieScoreOptionsHtml(t.importance)}</select>
         </div>
         <div class="num-input-wrap">
           <span class="nl">Ease</span>
-          <input class="num-input" type="number" min="1" max="10" step="1" data-field="ease" value="${t.ease??''}" placeholder="1–10" />
+          <select class="num-input pie-select" data-field="ease">${pieScoreOptionsHtml(t.ease)}</select>
         </div>
       </div>
       <div class="pie-total-row">
@@ -907,16 +939,20 @@ function openDrawer(id){
     });
   });
 
-  function readImageFile(file, field){
+  async function readImageFile(file, field, zoneId){
     if(!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      t[field] = reader.result;
-      updateTestRemote(t.id, {[field]: reader.result});
+    const zone = document.getElementById(zoneId);
+    if(zone) zone.innerHTML = `<span class="empty">Uploading…</span>`;
+    try{
+      const url = await uploadToCloudinary(file);
+      t[field] = url;
+      updateTestRemote(t.id, {[field]: url});
       renderAll();
       openDrawer(t.id);
-    };
-    reader.readAsDataURL(file);
+    }catch(e){
+      console.error(e);
+      if(zone) zone.innerHTML = `<span class="empty">Upload failed — try again</span>`;
+    }
   }
 
   function wireDropzone(zoneId, inputId, removeBtnId, field){
@@ -924,13 +960,13 @@ function openDrawer(id){
     const input = document.getElementById(inputId);
     if(!zone) return;
     zone.addEventListener('click', e=>{ if(e.target.tagName!=='INPUT') input.click(); });
-    input.addEventListener('change', ()=> readImageFile(input.files[0], field));
+    input.addEventListener('change', ()=> readImageFile(input.files[0], field, zoneId));
     zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
     zone.addEventListener('drop', e=>{
       e.preventDefault();
       zone.classList.remove('dragover');
-      readImageFile(e.dataTransfer.files[0], field);
+      readImageFile(e.dataTransfer.files[0], field, zoneId);
     });
     const removeBtn = document.getElementById(removeBtnId);
     if(removeBtn){
@@ -1023,15 +1059,15 @@ function openAddDrawer(){
           <div class="grid3">
             <div class="num-input-wrap">
               <span class="nl">Potential</span>
-              <input class="num-input" type="number" min="1" max="10" step="1" id="newPotential" placeholder="1–10" />
+              <select class="num-input pie-select" id="newPotential">${pieScoreOptionsHtml()}</select>
             </div>
             <div class="num-input-wrap">
               <span class="nl">Importance</span>
-              <input class="num-input" type="number" min="1" max="10" step="1" id="newImportance" placeholder="1–10" />
+              <select class="num-input pie-select" id="newImportance">${pieScoreOptionsHtml()}</select>
             </div>
             <div class="num-input-wrap">
               <span class="nl">Ease</span>
-              <input class="num-input" type="number" min="1" max="10" step="1" id="newEase" placeholder="1–10" />
+              <select class="num-input pie-select" id="newEase">${pieScoreOptionsHtml()}</select>
             </div>
           </div>
         </div>
@@ -1087,14 +1123,18 @@ function openAddDrawer(){
     wireNewDropzone('newVariantDropzone','newVariantFileInput',variantField);
   }
 
-  function readNewImageFile(file, field){
+  async function readNewImageFile(file, field, zoneId){
     if(!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      newImages[field] = reader.result;
+    const zone = document.getElementById(zoneId);
+    if(zone) zone.innerHTML = `<span class="empty">Uploading…</span>`;
+    try{
+      const url = await uploadToCloudinary(file);
+      newImages[field] = url;
       renderAddShotSection();
-    };
-    reader.readAsDataURL(file);
+    }catch(e){
+      console.error(e);
+      if(zone) zone.innerHTML = `<span class="empty">Upload failed — try again</span>`;
+    }
   }
 
   function wireNewDropzone(zoneId, inputId, field){
@@ -1102,13 +1142,13 @@ function openAddDrawer(){
     const input = document.getElementById(inputId);
     if(!zone || !input) return;
     zone.onclick = e=>{ if(e.target.tagName!=='INPUT') input.click(); };
-    input.onchange = ()=> readNewImageFile(input.files[0], field);
+    input.onchange = ()=> readNewImageFile(input.files[0], field, zoneId);
     zone.ondragover = e=>{ e.preventDefault(); zone.classList.add('dragover'); };
     zone.ondragleave = ()=> zone.classList.remove('dragover');
     zone.ondrop = e=>{
       e.preventDefault();
       zone.classList.remove('dragover');
-      readNewImageFile(e.dataTransfer.files[0], field);
+      readNewImageFile(e.dataTransfer.files[0], field, zoneId);
     };
   }
   renderAddShotSection();
