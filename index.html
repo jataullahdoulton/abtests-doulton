@@ -75,22 +75,6 @@
   .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);display:inline-block;}
   h1{font-size:46px;margin:0 0 10px;font-weight:500;color:var(--deep-navy);letter-spacing:-0.5px;}
   .sub{font-family:sans-serif;color:var(--slate);font-size:15px;max-width:640px;line-height:1.6;margin-bottom:6px;}
-  .pipeline-strip{
-    margin:34px 40px 6px;
-    padding:22px 26px;
-    background:var(--white);
-    border:1px solid var(--line);
-    border-radius:10px;
-    font-family:sans-serif;
-  }
-  .pipeline-strip .label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--slate);font-weight:700;margin-bottom:16px;}
-  .stages{display:flex;align-items:center;}
-  .stage-node{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
-  .stage-node .dot{width:14px;height:14px;border-radius:50%;background:var(--line);border:2px solid var(--white);box-shadow:0 0 0 2px var(--line);position:relative;z-index:2;}
-  .stage-node .stage-name{font-size:11.5px;margin-top:10px;color:var(--slate);font-weight:600;text-align:center;}
-  .stage-node .count{font-family:Georgia,serif;font-size:22px;color:var(--deep-navy);margin-top:2px;}
-  .stage-track{position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--line);z-index:1;}
-  .stage-node:last-child .stage-track{display:none;}
   .stats{
     display:grid;grid-template-columns:repeat(5,1fr);gap:16px;
     margin:26px 40px 8px;
@@ -327,7 +311,7 @@
   }
   @media (max-width:900px){
     .stats{grid-template-columns:repeat(2,1fr);}
-    header,.hero,.controls,.table-wrap,.pipeline-strip{margin-left:16px;margin-right:16px;padding-left:16px;padding-right:16px;}
+    header,.hero,.controls,.table-wrap{margin-left:16px;margin-right:16px;padding-left:16px;padding-right:16px;}
     table{font-size:12px;}
     .t-overview{max-width:160px;}
     .grid3{grid-template-columns:1fr;}
@@ -354,11 +338,6 @@
 
 <div class="hero">
   <h1>A/B Test Pipeline Tracker</h1>
-</div>
-
-<div class="pipeline-strip" id="pipelineStrip">
-  <div class="label">Pipeline overview</div>
-  <div class="stages" id="stagesRow"></div>
 </div>
 
 <div class="stats" id="statCards"></div>
@@ -648,20 +627,6 @@ function renderTabs(){
   });
 }
 
-function renderStrip(){
-  const row = document.getElementById('stagesRow');
-  row.innerHTML = STAGES.map((s,i)=>{
-    const count = TESTS.filter(t=>t.stage===s.key).length;
-    return `
-      <div class="stage-node" style="--dotcolor:${s.color}">
-        ${i<STAGES.length-1?'<div class="stage-track"></div>':''}
-        <div class="dot" style="${count>0?`background:${s.color};box-shadow:0 0 0 2px ${s.color}`:''}"></div>
-        <div class="stage-name sans">${s.name}</div>
-        <div class="count">${count}</div>
-      </div>`;
-  }).join('');
-}
-
 function renderStats(){
   const total = TESTS.length;
   const signed = TESTS.filter(t=>t.signOff==='internal' || t.signOff==='kubix').length;
@@ -766,7 +731,6 @@ function renderTable(){
 function renderAll(){
   renderTabs();
   renderPageFilter();
-  renderStrip();
   renderStats();
   renderTable();
 }
