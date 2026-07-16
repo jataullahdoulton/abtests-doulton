@@ -421,7 +421,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN02', page:'Homepage', device:'Mobile / Desktop',
@@ -431,7 +431,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN03', page:'Homepage', device:'Mobile / Desktop',
@@ -441,7 +441,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN04', page:'Navigation', device:'Desktop',
@@ -451,7 +451,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN05', page:'Navigation', device:'Mobile / Desktop',
@@ -461,7 +461,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN06', page:'Search', device:'Mobile / Desktop',
@@ -471,7 +471,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN07', page:'Search', device:'Mobile / Desktop',
@@ -481,7 +481,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
   {
     id:'DLTN08', page:'Search', device:'Mobile / Desktop',
@@ -491,7 +491,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
+    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:''
   },
 ];
 
@@ -519,7 +519,7 @@ async function uploadToCloudinary(file){
 }
 
 const FIELD_TO_COLUMN = {
-  title:'title', overview:'overview', page:'page', device:'device', stage:'stage',
+  title:'title', overview:'overview', hypothesis:'hypothesis', page:'page', device:'device', stage:'stage',
   testType:'test_type', signOff:'sign_off', liveDate:'live_date',
   potential:'potential', importance:'importance', ease:'ease',
   testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
@@ -824,6 +824,10 @@ function openDrawer(id){
           <div class="flabel">Overview</div>
           <div class="fval">${t.overview}</div>
         </div>
+        <div class="field-block">
+          <div class="flabel">Hypothesis</div>
+          <textarea class="notes" data-field="hypothesis" placeholder="If we change X, then Y will happen because…">${t.hypothesis||''}</textarea>
+        </div>
         <div class="grid2">
           <div class="field-block">
             <div class="flabel">Page / section</div>
@@ -1019,8 +1023,12 @@ function openAddDrawer(){
           <input class="text-input" id="newTitle" placeholder="e.g. Sticky Add to Basket Bar" />
         </div>
         <div class="field-block">
-          <div class="flabel">Overview / hypothesis</div>
+          <div class="flabel">Overview</div>
           <textarea class="notes" id="newOverview" placeholder="What's changing and why…"></textarea>
+        </div>
+        <div class="field-block">
+          <div class="flabel">Hypothesis</div>
+          <textarea class="notes" id="newHypothesis" placeholder="If we change X, then Y will happen because…"></textarea>
         </div>
         <div class="grid2">
           <div class="field-block">
@@ -1181,6 +1189,7 @@ function openAddDrawer(){
       device: document.getElementById('newDevice').value,
       title,
       overview: document.getElementById('newOverview').value.trim(),
+      hypothesis: document.getElementById('newHypothesis').value.trim(),
       stage: document.getElementById('newStage').value,
       testType: document.getElementById('newType').value,
       signOff: document.getElementById('newSignOff').value,
