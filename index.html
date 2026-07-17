@@ -144,6 +144,12 @@
   }
   .drag-handle:hover{color:var(--slate);}
   .drag-handle-disabled{color:#DCD6C9;font-size:16px;display:inline-block;padding:4px;cursor:default;}
+  .delete-col{width:36px;text-align:center;}
+  .delete-row-btn{
+    background:none;border:none;color:#C4BCAA;font-size:14px;cursor:pointer;
+    width:26px;height:26px;border-radius:6px;line-height:1;transition:all .15s ease;
+  }
+  .delete-row-btn:hover{background:#F8EEE8;color:var(--red);}
   tbody tr[draggable="true"]:active{cursor:grabbing;}
   tbody tr.dragging{opacity:0.35;}
   .t-id{font-family:"SF Mono","Roboto Mono",monospace;font-size:12px;color:var(--slate);}
@@ -379,6 +385,7 @@
     </select>
     <select class="sort-select" id="sortSelect">
       <option value="default">Sort: Pipeline order</option>
+      <option value="id-asc">Sort: ID (DLTN01 → 0X)</option>
       <option value="pie-desc">Sort: PIE score (high → low)</option>
       <option value="pie-asc">Sort: PIE score (low → high)</option>
     </select>
@@ -407,6 +414,7 @@
         <th>Est. live date</th>
         <th>Priority</th>
         <th class="th-sortable" id="pieHeader">PIE ↕</th>
+        <th class="delete-col"></th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
@@ -654,6 +662,26 @@ async function insertTestRemote(t){
   }
 }
 
+async function deleteTestRemote(id){
+  if(!supabaseAvailable) return;
+  try{
+    const { error } = await sb.from('tests').delete().eq('id', id);
+    if(error) console.error('Supabase delete failed:', error);
+  }catch(e){
+    console.error('Supabase delete failed:', e);
+  }
+}
+
+function deleteTest(id){
+  const t = TESTS.find(x=>x.id===id);
+  if(!t) return;
+  const ok = confirm(`Delete "${t.title}" (${t.id})? This can't be undone.`);
+  if(!ok) return;
+  TESTS = TESTS.filter(x=>x.id!==id);
+  deleteTestRemote(id);
+  renderAll();
+}
+
 // Live sync — refresh the table view whenever anyone else changes a test
 if(supabaseAvailable){
   try{
@@ -760,6 +788,9 @@ function filteredTests(){
     const matchesSearch = !s || (t.title+t.overview+t.id+t.page).toLowerCase().includes(s);
     return matchesStage && matchesPage && matchesPriority && matchesSearch && matchesPieFilter(t);
   });
+  if(sortMode==='id-asc'){
+    rows = rows.slice().sort((a,b)=> a.id.localeCompare(b.id, undefined, {numeric:true}));
+  }
   if(sortMode==='pie-desc' || sortMode==='pie-asc'){
     rows = rows.slice().sort((a,b)=>{
       const sa = pieScore(a), sb = pieScore(b);
@@ -800,7 +831,7 @@ function renderTable(){
   const body = document.getElementById('tableBody');
   const dragEnabled = sortMode==='default';
   if(rows.length===0){
-    body.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(t=>`
@@ -820,12 +851,19 @@ function renderTable(){
       <td class="sans">${t.liveDate ? t.liveDate : '<span class="tbc">TBC</span>'}</td>
       <td>${priorityBadgeHtml(t)}</td>
       <td>${pieBadgeHtml(t)}</td>
+      <td class="delete-col"><button class="delete-row-btn" data-delete-id="${t.id}" title="Delete test" type="button">✕</button></td>
     </tr>
   `).join('');
   body.querySelectorAll('tr').forEach(tr=>{
     tr.addEventListener('click', e=>{
-      if(e.target.closest('.drag-handle')) return;
+      if(e.target.closest('.drag-handle') || e.target.closest('.delete-row-btn')) return;
       openDrawer(tr.dataset.id);
+    });
+  });
+  body.querySelectorAll('.delete-row-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      deleteTest(btn.dataset.deleteId);
     });
   });
 
