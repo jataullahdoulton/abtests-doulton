@@ -256,21 +256,6 @@
   }
   .num-input:hover{border-color:var(--gold);}
   .num-input:focus{outline:none;border-color:var(--navy);}
-  .device-check-group{
-    display:flex;gap:10px;
-  }
-  .device-check{
-    flex:1;display:flex;align-items:center;gap:9px;
-    font-family:sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);
-    padding:11px 14px;border-radius:8px;border:1px solid var(--line);
-    background:var(--white);cursor:pointer;height:44px;box-sizing:border-box;
-    transition:border-color .15s ease, background .15s ease;
-  }
-  .device-check:hover{border-color:var(--gold);}
-  .device-check.checked{border-color:var(--navy);background:#F4F1E9;}
-  .device-check input[type="checkbox"]{
-    width:16px;height:16px;accent-color:var(--navy);cursor:pointer;margin:0;flex-shrink:0;
-  }
   .pie-box{
     background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:22px;
   }
@@ -443,30 +428,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const PAGE_OPTIONS = ['Homepage','Search','Navigation','PLP','PDP','Checkout'];
-const DEVICE_OPTIONS = ['Desktop','Mobile'];
-
-function parseDevices(deviceStr){
-  const s = (deviceStr||'').toLowerCase();
-  return { desktop: s.includes('desktop'), mobile: s.includes('mobile') };
-}
-function composeDeviceString(desktop, mobile){
-  const parts = [];
-  if(desktop) parts.push('Desktop');
-  if(mobile) parts.push('Mobile');
-  return parts.join(', ');
-}
-function deviceCheckboxesHtml(deviceStr, prefix){
-  const d = parseDevices(deviceStr);
-  return `
-    <div class="device-check-group">
-      <label class="device-check ${d.desktop?'checked':''}" id="${prefix}DesktopLabel">
-        <input type="checkbox" id="${prefix}Desktop" ${d.desktop?'checked':''}> Desktop
-      </label>
-      <label class="device-check ${d.mobile?'checked':''}" id="${prefix}MobileLabel">
-        <input type="checkbox" id="${prefix}Mobile" ${d.mobile?'checked':''}> Mobile
-      </label>
-    </div>`;
-}
+const DEVICE_OPTIONS = ['Mobile / Desktop','Desktop','Mobile'];
 
 const STAGES = [
   {key:'research',         name:'Research / Hypothesis', color:'var(--stage-research)'},
@@ -1085,7 +1047,9 @@ function openDrawer(id){
           </div>
           <div class="field-block">
             <div class="flabel">Device</div>
-            ${deviceCheckboxesHtml(t.device, 'editDevice')}
+            <select class="device-select" data-field="device">
+              ${DEVICE_OPTIONS.map(d=>`<option value="${d}" ${t.device===d?'selected':''}>${d}</option>`).join('')}
+            </select>
           </div>
         </div>
         <div class="grid2">
@@ -1203,20 +1167,6 @@ function openDrawer(id){
     });
   });
 
-  ['editDeviceDesktop','editDeviceMobile'].forEach(id=>{
-    const cb = document.getElementById(id);
-    if(!cb) return;
-    cb.addEventListener('change', ()=>{
-      const desktop = document.getElementById('editDeviceDesktop').checked;
-      const mobile = document.getElementById('editDeviceMobile').checked;
-      const value = composeDeviceString(desktop, mobile);
-      t.device = value;
-      updateTestRemote(t.id, {device: value});
-      renderAll();
-      openDrawer(t.id);
-    });
-  });
-
   document.querySelectorAll('#drawerBody .shot-view-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       activeShotView = btn.dataset.view;
@@ -1309,7 +1259,9 @@ function openAddDrawer(){
           </div>
           <div class="field-block">
             <div class="flabel">Device</div>
-            ${deviceCheckboxesHtml('Desktop, Mobile', 'newDevice')}
+            <select class="device-select" id="newDevice">
+              ${DEVICE_OPTIONS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+            </select>
           </div>
         </div>
         <div class="grid2">
@@ -1451,13 +1403,6 @@ function openAddDrawer(){
   }
   renderAddShotSection();
 
-  ['newDeviceDesktop','newDeviceMobile'].forEach(id=>{
-    const cb = document.getElementById(id);
-    const label = document.getElementById(id+'Label');
-    if(!cb || !label) return;
-    cb.addEventListener('change', ()=> label.classList.toggle('checked', cb.checked));
-  });
-
   document.getElementById('saveNewBtn').addEventListener('click', ()=>{
     const title = document.getElementById('newTitle').value.trim();
     if(!title){
@@ -1468,7 +1413,7 @@ function openAddDrawer(){
     const t = {
       id: newId,
       page: document.getElementById('newPage').value,
-      device: composeDeviceString(document.getElementById('newDeviceDesktop').checked, document.getElementById('newDeviceMobile').checked),
+      device: document.getElementById('newDevice').value,
       title,
       overview: document.getElementById('newOverview').value.trim(),
       hypothesis: document.getElementById('newHypothesis').value.trim(),
