@@ -68,6 +68,11 @@
   }
   .updated b{color:var(--ink);}
   .hero{padding:52px 40px 20px;}
+  .offline-banner{
+    margin:0 40px 20px;padding:12px 18px;border-radius:8px;
+    background:#F8EEE8;border:1px solid #E8CBBC;color:#8A4A32;
+    font-size:12.5px;line-height:1.5;
+  }
   .eyebrow{
     font-family:sans-serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
     color:var(--gold);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;
@@ -121,43 +126,6 @@
     background:var(--deep-navy);color:var(--cream);cursor:pointer;white-space:nowrap;
   }
   .add-btn:hover{background:var(--navy);}
-  .board-section{margin:0 40px 32px;}
-  .board-tabs{display:flex;gap:8px;margin-bottom:18px;}
-  .board-tab{
-    font-family:sans-serif;font-size:12.5px;font-weight:700;letter-spacing:0.3px;
-    padding:9px 22px;border-radius:20px;border:1px solid var(--line);
-    background:var(--white);color:var(--slate);cursor:pointer;transition:all .15s ease;
-    text-transform:uppercase;
-  }
-  .board-tab:hover{border-color:var(--navy);color:var(--navy);}
-  .board-tab.active{background:var(--deep-navy);color:var(--cream);border-color:var(--deep-navy);}
-  .board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
-  .board-card{
-    background:var(--white);border:1px solid var(--line);border-radius:10px;padding:16px;
-    cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  .board-card:hover{border-color:var(--gold);box-shadow:0 2px 10px rgba(0,0,0,0.06);}
-  .board-card-tag{
-    font-family:sans-serif;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;
-    font-weight:700;color:var(--gold);margin-bottom:8px;
-  }
-  .board-card-title{
-    font-family:Georgia,serif;font-size:15px;font-weight:600;color:var(--deep-navy);
-    margin-bottom:12px;line-height:1.35;
-  }
-  .board-card-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
-  .board-card-action{
-    width:100%;font-family:sans-serif;font-size:12px;font-weight:700;padding:9px;
-    border-radius:7px;cursor:pointer;transition:all .15s ease;
-  }
-  .board-card-action.add{background:#EFEAE0;color:var(--navy);border:1px solid var(--line);}
-  .board-card-action.add:hover{background:var(--navy);color:var(--cream);border-color:var(--navy);}
-  .board-card-action.remove{background:#F8EEE8;color:var(--red);border:1px solid #E8CBBC;}
-  .board-card-action.remove:hover{background:var(--red);color:var(--white);}
-  .board-empty{
-    font-family:sans-serif;color:var(--slate);font-size:13px;padding:36px;text-align:center;
-    grid-column:1/-1;
-  }
   .table-wrap{margin:0 40px 60px;background:var(--white);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
   table{width:100%;border-collapse:collapse;font-family:sans-serif;}
   thead th{
@@ -207,6 +175,14 @@
   .pie-mid{background:#F6EBD6;color:var(--amber);border-color:#EBDBB2;}
   .pie-low{background:#F3E3DC;color:var(--red);border-color:#E8CBBC;}
   .pie-none{background:#EEEBE3;color:#A79A82;font-style:italic;font-weight:400;font-size:12.5px;}
+  .priority-pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    padding:5px 11px;border-radius:14px;white-space:nowrap;
+  }
+  .priority-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .priority-yes{background:#F6EBD6;color:#8A6A2F;}
+  .priority-no{background:#EEEBE3;color:#7A7264;}
+  .priority-tabs{display:flex;gap:8px;margin:34px 40px 14px;}
   .overlay{
     position:fixed;inset:0;background:rgba(11,27,55,0.35);z-index:40;
     display:none;
@@ -402,12 +378,9 @@
   </div>
 </div>
 
-<div class="board-section">
-  <div class="board-tabs">
-    <button class="board-tab active" data-board="backlog" type="button">Backlog</button>
-    <button class="board-tab" data-board="priority" type="button">Priority</button>
-  </div>
-  <div class="board-grid" id="boardGrid"></div>
+<div class="priority-tabs" id="priorityTabs">
+  <button class="tab active" data-priority="backlog" type="button">Backlog</button>
+  <button class="tab" data-priority="priority" type="button">Priority</button>
 </div>
 
 <div class="table-wrap">
@@ -422,6 +395,7 @@
         <th>Stage</th>
         <th>Type</th>
         <th>Est. live date</th>
+        <th>Priority</th>
         <th class="th-sortable" id="pieHeader">PIE ↕</th>
       </tr>
     </thead>
@@ -550,7 +524,17 @@ let TESTS = [
 
 const SUPABASE_URL = 'https://pzrnopycnrebsayjjllk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eXjpOQEb7O3mRo-ohUKUZg_1s10Sywh';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sb = null;
+let supabaseAvailable = false;
+try{
+  if(window.supabase && typeof window.supabase.createClient === 'function'){
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    supabaseAvailable = true;
+  }
+}catch(e){
+  console.warn('Supabase client could not be initialized — running in local-only mode.', e);
+}
 
 const CLOUDINARY_CLOUD_NAME = 'glwni9jm';
 const CLOUDINARY_UPLOAD_PRESET = 'abtests-designs';
@@ -602,7 +586,22 @@ function testToRow(t){
   return row;
 }
 
+function showOfflineBanner(){
+  if(document.getElementById('offlineBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'offlineBanner';
+  banner.className = 'offline-banner sans';
+  banner.textContent = "⚠ Not connected to the shared database right now — showing local data only, and edits won't be saved or synced. This is expected in a restricted preview; it works normally once hosted (e.g. on Vercel).";
+  const hero = document.querySelector('.hero');
+  if(hero) hero.insertAdjacentElement('afterend', banner);
+}
+
 async function loadTestsFromSupabase(){
+  if(!supabaseAvailable){
+    showOfflineBanner();
+    renderAll();
+    return;
+  }
   try{
     const { data, error } = await sb.from('tests').select('*').order('id');
     if(error) throw error;
@@ -611,31 +610,48 @@ async function loadTestsFromSupabase(){
     }
   }catch(e){
     console.warn('Could not reach Supabase — showing local fallback data.', e);
+    showOfflineBanner();
   }
   renderAll();
 }
 
 async function updateTestRemote(id, patch){
-  const row = {};
-  Object.keys(patch).forEach(field=>{
-    if(FIELD_TO_COLUMN[field]) row[FIELD_TO_COLUMN[field]] = patch[field];
-  });
-  row.updated_at = new Date().toISOString();
-  const { error } = await sb.from('tests').update(row).eq('id', id);
-  if(error) console.error('Supabase update failed:', error);
+  if(!supabaseAvailable) return;
+  try{
+    const row = {};
+    Object.keys(patch).forEach(field=>{
+      if(FIELD_TO_COLUMN[field]) row[FIELD_TO_COLUMN[field]] = patch[field];
+    });
+    row.updated_at = new Date().toISOString();
+    const { error } = await sb.from('tests').update(row).eq('id', id);
+    if(error) console.error('Supabase update failed:', error);
+  }catch(e){
+    console.error('Supabase update failed:', e);
+  }
 }
 
 async function insertTestRemote(t){
-  const { error } = await sb.from('tests').insert([testToRow(t)]);
-  if(error) console.error('Supabase insert failed:', error);
+  if(!supabaseAvailable) return;
+  try{
+    const { error } = await sb.from('tests').insert([testToRow(t)]);
+    if(error) console.error('Supabase insert failed:', error);
+  }catch(e){
+    console.error('Supabase insert failed:', e);
+  }
 }
 
 // Live sync — refresh the table view whenever anyone else changes a test
-sb.channel('tests-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'tests' }, ()=>{
-    loadTestsFromSupabase();
-  })
-  .subscribe();
+if(supabaseAvailable){
+  try{
+    sb.channel('tests-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tests' }, ()=>{
+        loadTestsFromSupabase();
+      })
+      .subscribe();
+  }catch(e){
+    console.warn('Realtime subscription could not be started.', e);
+  }
+}
 
 document.getElementById('lastUpdated').textContent =
   new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
@@ -645,7 +661,7 @@ let activePageFilter = 'all';
 let activePieFilter = 'all';
 let searchTerm = '';
 let sortMode = 'default';
-let activeBoard = 'backlog';
+let activePriorityFilter = 'backlog';
 
 function stageInfo(key){ return STAGES.find(s=>s.key===key) || STAGES[0]; }
 
@@ -725,9 +741,10 @@ function filteredTests(){
   let rows = TESTS.filter(t=>{
     const matchesStage = activeFilter==='all' || t.stage===activeFilter;
     const matchesPage = activePageFilter==='all' || t.page===activePageFilter;
+    const matchesPriority = activePriorityFilter==='priority' ? t.isPriority : true;
     const s = searchTerm.toLowerCase();
     const matchesSearch = !s || (t.title+t.overview+t.id+t.page).toLowerCase().includes(s);
-    return matchesStage && matchesPage && matchesSearch && matchesPieFilter(t);
+    return matchesStage && matchesPage && matchesPriority && matchesSearch && matchesPieFilter(t);
   });
   if(sortMode==='pie-desc' || sortMode==='pie-asc'){
     rows = rows.slice().sort((a,b)=>{
@@ -758,11 +775,17 @@ function signOffHtml(t){
   return '<span class="signoff-pending">Pending</span>';
 }
 
+function priorityBadgeHtml(t){
+  return t.isPriority
+    ? '<span class="priority-pill priority-yes">Priority</span>'
+    : '<span class="priority-pill priority-no">Backlog</span>';
+}
+
 function renderTable(){
   const rows = filteredTests();
   const body = document.getElementById('tableBody');
   if(rows.length===0){
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(t=>`
@@ -779,6 +802,7 @@ function renderTable(){
       <td>${badgeHtml(t)}</td>
       <td>${typeBadgeHtml(t)}</td>
       <td class="sans">${t.liveDate ? t.liveDate : '<span class="tbc">TBC</span>'}</td>
+      <td>${priorityBadgeHtml(t)}</td>
       <td>${pieBadgeHtml(t)}</td>
     </tr>
   `).join('');
@@ -787,74 +811,25 @@ function renderTable(){
   });
 }
 
-function renderBoard(){
-  const grid = document.getElementById('boardGrid');
-  document.querySelectorAll('.board-tab').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.board===activeBoard);
-  });
-
-  let cards = activeBoard==='priority'
-    ? TESTS.filter(t=>t.isPriority)
-    : TESTS.slice();
-
-  if(activeBoard==='priority'){
-    cards.sort((a,b)=>{
-      const sa = pieScore(a), sb = pieScore(b);
-      if(sa==null && sb==null) return 0;
-      if(sa==null) return 1;
-      if(sb==null) return -1;
-      return sb-sa;
-    });
-  }
-
-  if(cards.length===0){
-    grid.innerHTML = `<div class="board-empty">${activeBoard==='priority' ? "No tests marked as priority yet — add some from the Backlog tab." : "No tests in the backlog."}</div>`;
-    return;
-  }
-
-  grid.innerHTML = cards.map(t=>`
-    <div class="board-card" data-id="${t.id}">
-      <div class="board-card-tag">${t.page || 'Uncategorised'}</div>
-      <div class="board-card-title">${t.title}</div>
-      <div class="board-card-meta">${badgeHtml(t)}${pieBadgeHtml(t)}</div>
-      <button class="board-card-action ${t.isPriority?'remove':'add'}" data-action-id="${t.id}" type="button">
-        ${t.isPriority ? '− Remove from Priority' : '+ Add to Priority'}
-      </button>
-    </div>
-  `).join('');
-
-  grid.querySelectorAll('.board-card').forEach(card=>{
-    card.addEventListener('click', e=>{
-      if(e.target.closest('.board-card-action')) return;
-      openDrawer(card.dataset.id);
-    });
-  });
-  grid.querySelectorAll('.board-card-action').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      const id = btn.dataset.actionId;
-      const t = TESTS.find(x=>x.id===id);
-      if(!t) return;
-      t.isPriority = !t.isPriority;
-      updateTestRemote(t.id, {isPriority: t.isPriority});
-      renderAll();
-    });
+function renderPriorityTabs(){
+  document.querySelectorAll('#priorityTabs .tab').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.priority===activePriorityFilter);
   });
 }
 
-document.querySelectorAll('.board-tab').forEach(btn=>{
+document.querySelectorAll('#priorityTabs .tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    activeBoard = btn.dataset.board;
-    renderBoard();
+    activePriorityFilter = btn.dataset.priority;
+    renderAll();
   });
 });
 
 function renderAll(){
   renderTabs();
   renderPageFilter();
+  renderPriorityTabs();
   renderStats();
   renderTable();
-  renderBoard();
 }
 
 document.getElementById('searchBox').addEventListener('input', e=>{
@@ -993,6 +968,13 @@ function openDrawer(id){
             <input class="date-input" type="date" data-field="liveDate" value="${t.liveDate||''}" />
           </div>
         </div>
+        <div class="field-block">
+          <div class="flabel">Priority</div>
+          <select class="sign-select" data-field="isPriority">
+            <option value="false" ${!t.isPriority?'selected':''}>Backlog</option>
+            <option value="true" ${t.isPriority?'selected':''}>Priority</option>
+          </select>
+        </div>
         ${pieFieldsHtml(t)}
         <div class="field-block">
           <div class="flabel">Briefing card link (ClickUp / Trello)</div>
@@ -1061,6 +1043,9 @@ function openDrawer(id){
       let value = el.value;
       if(['potential','importance','ease'].includes(field)){
         value = value===''? null : Math.max(1, Math.min(10, Number(value)));
+      }
+      if(field==='isPriority'){
+        value = value==='true';
       }
       t[field] = value;
       updateTestRemote(t.id, {[field]:value});
@@ -1195,6 +1180,13 @@ function openAddDrawer(){
             <input class="date-input" type="date" id="newLiveDate" />
           </div>
         </div>
+        <div class="field-block">
+          <div class="flabel">Priority</div>
+          <select class="sign-select" id="newIsPriority">
+            <option value="false" selected>Backlog</option>
+            <option value="true">Priority</option>
+          </select>
+        </div>
         <div class="pie-box">
           <div class="flabel">PIE score (optional — leave blank if not yet scored)</div>
           <div class="grid3">
@@ -1324,7 +1316,7 @@ function openAddDrawer(){
       mobileControlImageUrl: newImages.mobileControlImageUrl,
       mobileVariantImageUrl: newImages.mobileVariantImageUrl,
       testPlan:'', mockupUrl:'', cardUrl: document.getElementById('newCardUrl').value.trim(), testResult:'', testLearnings:'',
-      isPriority:false
+      isPriority: document.getElementById('newIsPriority').value==='true'
     };
     TESTS.push(t);
     insertTestRemote(t);
