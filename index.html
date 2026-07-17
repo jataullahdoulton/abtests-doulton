@@ -145,9 +145,7 @@
   .drag-handle:hover{color:var(--slate);}
   .drag-handle-disabled{color:#DCD6C9;font-size:16px;display:inline-block;padding:4px;cursor:default;}
   tbody tr[draggable="true"]:active{cursor:grabbing;}
-  tbody tr.dragging{opacity:0.4;}
-  tbody tr.drag-over-top{box-shadow:inset 0 2px 0 var(--gold);}
-  tbody tr.drag-over-bottom{box-shadow:inset 0 -2px 0 var(--gold);}
+  tbody tr.dragging{opacity:0.35;}
   .t-id{font-family:"SF Mono","Roboto Mono",monospace;font-size:12px;color:var(--slate);}
   .t-title{font-weight:700;color:var(--deep-navy);font-size:14px;margin-bottom:3px;}
   .t-overview{color:var(--slate);font-size:12.5px;line-height:1.4;max-width:320px;}
@@ -836,53 +834,94 @@ function renderTable(){
 
 let dragState = null;
 
+function animateRowShift(body, mutate){
+  const rows = Array.from(body.children);
+  const before = new Map();
+  rows.forEach(r=> before.set(r, r.getBoundingClientRect().top));
+
+  mutate();
+
+  Array.from(body.children).forEach(r=>{
+    const prevTop = before.get(r);
+    if(prevTop===undefined) return;
+    const newTop = r.getBoundingClientRect().top;
+    const delta = prevTop - newTop;
+    if(delta){
+      r.style.transition = 'none';
+      r.style.transform = `translateY(${delta}px)`;
+      requestAnimationFrame(()=>{
+        r.style.transition = 'transform 180ms ease';
+        r.style.transform = '';
+      });
+    }
+  });
+}
+
 function wireRowDragging(body, visibleRows){
   const trs = Array.from(body.querySelectorAll('tr[draggable="true"]'));
+  let draggedEl = null;
 
   trs.forEach(tr=>{
     tr.addEventListener('dragstart', e=>{
       dragState = { id: tr.dataset.id };
+      draggedEl = tr;
       tr.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tr.dataset.id);
     });
-    tr.addEventListener('dragend', ()=>{
-      tr.classList.remove('dragging');
-      trs.forEach(x=>x.classList.remove('drag-over-top','drag-over-bottom'));
-      dragState = null;
-    });
+
     tr.addEventListener('dragover', e=>{
       e.preventDefault();
-      if(!dragState || dragState.id===tr.dataset.id) return;
+      if(!draggedEl || draggedEl===tr) return;
       const rect = tr.getBoundingClientRect();
       const isAbove = (e.clientY - rect.top) < rect.height/2;
-      trs.forEach(x=>x.classList.remove('drag-over-top','drag-over-bottom'));
-      tr.classList.add(isAbove ? 'drag-over-top' : 'drag-over-bottom');
+      const wantsBeforeEl = isAbove ? tr : tr.nextElementSibling;
+
+      // Skip if the dragged row is already exactly in this position
+      if(draggedEl.nextElementSibling===wantsBeforeEl) return;
+
+      animateRowShift(body, ()=>{
+        body.insertBefore(draggedEl, wantsBeforeEl);
+      });
     });
+
     tr.addEventListener('drop', e=>{
       e.preventDefault();
-      if(!dragState || dragState.id===tr.dataset.id) return;
-      const draggedTest = TESTS.find(x=>x.id===dragState.id);
-      if(!draggedTest) return;
+    });
 
-      const rect = tr.getBoundingClientRect();
-      const isAbove = (e.clientY - rect.top) < rect.height/2;
-      const targetIndex = visibleRows.findIndex(x=>x.id===tr.dataset.id);
-      const targetOrder = visibleRows[targetIndex].sortOrder || 0;
-
-      let newOrder;
-      if(isAbove){
-        const prevOrder = targetIndex>0 ? (visibleRows[targetIndex-1].sortOrder||0) : targetOrder - 2000;
-        newOrder = (prevOrder + targetOrder) / 2;
-      }else{
-        const nextOrder = targetIndex<visibleRows.length-1 ? (visibleRows[targetIndex+1].sortOrder||0) : targetOrder + 2000;
-        newOrder = (targetOrder + nextOrder) / 2;
-      }
-
-      draggedTest.sortOrder = newOrder;
-      updateTestRemote(draggedTest.id, {sortOrder: newOrder});
-      renderAll();
+    tr.addEventListener('dragend', ()=>{
+      if(draggedEl) draggedEl.classList.remove('dragging');
+      finalizeRowOrder(body);
+      dragState = null;
+      draggedEl = null;
     });
   });
+
+  // Allow dropping in the empty space below the last row too
+  body.addEventListener('dragover', e=> e.preventDefault());
+}
+
+function finalizeRowOrder(body){
+  if(!dragState) return;
+  const draggedTest = TESTS.find(x=>x.id===dragState.id);
+  if(!draggedTest) return;
+
+  const trs = Array.from(body.querySelectorAll('tr[data-id]'));
+  const idx = trs.findIndex(tr=>tr.dataset.id===draggedTest.id);
+  if(idx===-1) return;
+
+  const prevTest = idx>0 ? TESTS.find(x=>x.id===trs[idx-1].dataset.id) : null;
+  const nextTest = idx<trs.length-1 ? TESTS.find(x=>x.id===trs[idx+1].dataset.id) : null;
+
+  const prevOrder = prevTest ? (prevTest.sortOrder||0) : (draggedTest.sortOrder||0) - 2000;
+  const nextOrder = nextTest ? (nextTest.sortOrder||0) : (draggedTest.sortOrder||0) + 2000;
+  const newOrder = (prevOrder + nextOrder) / 2;
+
+  if(newOrder===draggedTest.sortOrder) return;
+
+  draggedTest.sortOrder = newOrder;
+  updateTestRemote(draggedTest.id, {sortOrder: newOrder});
+  renderAll();
 }
 
 function renderPriorityTabs(){
