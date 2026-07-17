@@ -137,6 +137,17 @@
   tbody tr{cursor:pointer;transition:background .12s ease;}
   tbody tr:hover{background:#FAF7F0;}
   tbody tr:last-child td{border-bottom:none;}
+  .drag-col{width:32px;padding-left:12px !important;padding-right:0 !important;}
+  .drag-handle{
+    cursor:grab;color:#C4BCAA;font-size:16px;user-select:none;display:inline-block;
+    padding:4px;line-height:1;
+  }
+  .drag-handle:hover{color:var(--slate);}
+  .drag-handle-disabled{color:#DCD6C9;font-size:16px;display:inline-block;padding:4px;cursor:default;}
+  tbody tr[draggable="true"]:active{cursor:grabbing;}
+  tbody tr.dragging{opacity:0.4;}
+  tbody tr.drag-over-top{box-shadow:inset 0 2px 0 var(--gold);}
+  tbody tr.drag-over-bottom{box-shadow:inset 0 -2px 0 var(--gold);}
   .t-id{font-family:"SF Mono","Roboto Mono",monospace;font-size:12px;color:var(--slate);}
   .t-title{font-weight:700;color:var(--deep-navy);font-size:14px;margin-bottom:3px;}
   .t-overview{color:var(--slate);font-size:12.5px;line-height:1.4;max-width:320px;}
@@ -387,6 +398,7 @@
   <table>
     <thead>
       <tr>
+        <th class="drag-col"></th>
         <th>ID</th>
         <th>Test</th>
         <th>Page</th>
@@ -441,7 +453,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:1000
   },
   {
     id:'DLTN02', page:'Homepage', device:'Mobile / Desktop',
@@ -452,7 +464,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:2000
   },
   {
     id:'DLTN03', page:'Homepage', device:'Mobile / Desktop',
@@ -463,7 +475,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:3000
   },
   {
     id:'DLTN04', page:'Navigation', device:'Desktop',
@@ -474,7 +486,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:4000
   },
   {
     id:'DLTN05', page:'Navigation', device:'Mobile / Desktop',
@@ -485,7 +497,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:5000
   },
   {
     id:'DLTN06', page:'Search', device:'Mobile / Desktop',
@@ -496,7 +508,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:6000
   },
   {
     id:'DLTN07', page:'Search', device:'Mobile / Desktop',
@@ -507,7 +519,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:7000
   },
   {
     id:'DLTN08', page:'Search', device:'Mobile / Desktop',
@@ -518,7 +530,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false
+    isPriority:false, sortOrder:8000
   },
 ];
 
@@ -562,7 +574,7 @@ const FIELD_TO_COLUMN = {
   testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
   desktopControlImageUrl:'desktop_control_url', desktopVariantImageUrl:'desktop_variant_url',
   mobileControlImageUrl:'mobile_control_url', mobileVariantImageUrl:'mobile_variant_url',
-  isPriority:'is_priority'
+  isPriority:'is_priority', sortOrder:'sort_order'
 };
 
 function rowToTest(row){
@@ -571,6 +583,10 @@ function rowToTest(row){
     const col = FIELD_TO_COLUMN[field];
     if(field==='isPriority'){
       t[field] = !!row[col];
+      return;
+    }
+    if(field==='sortOrder'){
+      t[field] = row[col]===null || row[col]===undefined ? 0 : Number(row[col]);
       return;
     }
     t[field] = row[col] === null || row[col] === undefined
@@ -603,7 +619,7 @@ async function loadTestsFromSupabase(){
     return;
   }
   try{
-    const { data, error } = await sb.from('tests').select('*').order('id');
+    const { data, error } = await sb.from('tests').select('*').order('sort_order', { nullsFirst: false });
     if(error) throw error;
     if(data && data.length){
       TESTS = data.map(rowToTest);
@@ -784,12 +800,14 @@ function priorityBadgeHtml(t){
 function renderTable(){
   const rows = filteredTests();
   const body = document.getElementById('tableBody');
+  const dragEnabled = sortMode==='default';
   if(rows.length===0){
-    body.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="11" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(t=>`
-    <tr data-id="${t.id}">
+    <tr data-id="${t.id}" ${dragEnabled ? 'draggable="true"' : ''}>
+      <td class="drag-col">${dragEnabled ? '<span class="drag-handle" title="Drag to reorder">⠿</span>' : '<span class="drag-handle-disabled" title="Switch to Pipeline order sort to drag-reorder rows">·</span>'}</td>
       <td class="t-id">${t.id}</td>
       <td>
         <div class="t-title">${t.title}</div>
@@ -807,7 +825,63 @@ function renderTable(){
     </tr>
   `).join('');
   body.querySelectorAll('tr').forEach(tr=>{
-    tr.addEventListener('click', ()=> openDrawer(tr.dataset.id));
+    tr.addEventListener('click', e=>{
+      if(e.target.closest('.drag-handle')) return;
+      openDrawer(tr.dataset.id);
+    });
+  });
+
+  if(dragEnabled) wireRowDragging(body, rows);
+}
+
+let dragState = null;
+
+function wireRowDragging(body, visibleRows){
+  const trs = Array.from(body.querySelectorAll('tr[draggable="true"]'));
+
+  trs.forEach(tr=>{
+    tr.addEventListener('dragstart', e=>{
+      dragState = { id: tr.dataset.id };
+      tr.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tr.addEventListener('dragend', ()=>{
+      tr.classList.remove('dragging');
+      trs.forEach(x=>x.classList.remove('drag-over-top','drag-over-bottom'));
+      dragState = null;
+    });
+    tr.addEventListener('dragover', e=>{
+      e.preventDefault();
+      if(!dragState || dragState.id===tr.dataset.id) return;
+      const rect = tr.getBoundingClientRect();
+      const isAbove = (e.clientY - rect.top) < rect.height/2;
+      trs.forEach(x=>x.classList.remove('drag-over-top','drag-over-bottom'));
+      tr.classList.add(isAbove ? 'drag-over-top' : 'drag-over-bottom');
+    });
+    tr.addEventListener('drop', e=>{
+      e.preventDefault();
+      if(!dragState || dragState.id===tr.dataset.id) return;
+      const draggedTest = TESTS.find(x=>x.id===dragState.id);
+      if(!draggedTest) return;
+
+      const rect = tr.getBoundingClientRect();
+      const isAbove = (e.clientY - rect.top) < rect.height/2;
+      const targetIndex = visibleRows.findIndex(x=>x.id===tr.dataset.id);
+      const targetOrder = visibleRows[targetIndex].sortOrder || 0;
+
+      let newOrder;
+      if(isAbove){
+        const prevOrder = targetIndex>0 ? (visibleRows[targetIndex-1].sortOrder||0) : targetOrder - 2000;
+        newOrder = (prevOrder + targetOrder) / 2;
+      }else{
+        const nextOrder = targetIndex<visibleRows.length-1 ? (visibleRows[targetIndex+1].sortOrder||0) : targetOrder + 2000;
+        newOrder = (targetOrder + nextOrder) / 2;
+      }
+
+      draggedTest.sortOrder = newOrder;
+      updateTestRemote(draggedTest.id, {sortOrder: newOrder});
+      renderAll();
+    });
   });
 }
 
@@ -1316,7 +1390,8 @@ function openAddDrawer(){
       mobileControlImageUrl: newImages.mobileControlImageUrl,
       mobileVariantImageUrl: newImages.mobileVariantImageUrl,
       testPlan:'', mockupUrl:'', cardUrl: document.getElementById('newCardUrl').value.trim(), testResult:'', testLearnings:'',
-      isPriority: document.getElementById('newIsPriority').value==='true'
+      isPriority: document.getElementById('newIsPriority').value==='true',
+      sortOrder: (Math.max(0, ...TESTS.map(x=>x.sortOrder||0)) + 1000)
     };
     TESTS.push(t);
     insertTestRemote(t);
