@@ -1055,10 +1055,12 @@ function pieFieldsHtml(t){
 
 let activeShotView = 'desktop';
 let activeShotTestId = null;
+let isAddMode = false;
 
 function openDrawer(id){
   const t = TESTS.find(x=>x.id===id);
   if(!t) return;
+  isAddMode = false;
   if(activeShotTestId !== id){ activeShotView = 'desktop'; activeShotTestId = id; }
   const controlField = activeShotView + 'ControlImageUrl';
   const variantField = activeShotView + 'VariantImageUrl';
@@ -1269,6 +1271,7 @@ function nextId(){
 }
 
 function openAddDrawer(){
+  isAddMode = true;
   const newId = nextId();
   document.getElementById('dId').textContent = `${newId} · New test`;
   document.getElementById('dTitle').textContent = 'Add a test';
@@ -1473,6 +1476,7 @@ function openAddDrawer(){
     TESTS.push(t);
     insertTestRemote(t);
     renderAll();
+    isAddMode = false;
     closeDrawer();
   });
   document.getElementById('cancelNewBtn').addEventListener('click', closeDrawer);
@@ -1483,7 +1487,27 @@ function openAddDrawer(){
 
 document.getElementById('addBtn').addEventListener('click', openAddDrawer);
 
+function hasUnsavedAddDrawerInput(){
+  if(!isAddMode) return false;
+  const title = document.getElementById('newTitle');
+  const overview = document.getElementById('newOverview');
+  const hypothesis = document.getElementById('newHypothesis');
+  return !!((title && title.value.trim()) || (overview && overview.value.trim()) || (hypothesis && hypothesis.value.trim()));
+}
+
 function closeDrawer(){
+  if(isAddMode){
+    if(hasUnsavedAddDrawerInput()){
+      const ok = confirm("You've started a new test but haven't saved it. Close without saving?");
+      if(!ok) return;
+    }
+  }else{
+    // Commit any pending text-field edit (change fires on blur) before hiding the drawer
+    const active = document.activeElement;
+    if(active && drawer.contains(active) && typeof active.blur === 'function'){
+      active.blur();
+    }
+  }
   overlay.classList.remove('open');
   drawer.classList.remove('open');
 }
