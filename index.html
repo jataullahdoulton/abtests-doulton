@@ -1102,7 +1102,7 @@ function pieFieldsHtml(t){
       </div>
       <div class="pie-total-row">
         <span class="ttl">Total PIE</span>
-        ${pieBadgeHtml(t)}
+        <span id="pieTotalBadge">${pieBadgeHtml(t)}</span>
       </div>
     </div>
   `;
@@ -1188,21 +1188,21 @@ function openDrawer(id){
           <div class="flabel">Briefing card link (ClickUp / Trello)</div>
           <div class="link-field-row">
             <input class="text-input" type="url" data-field="cardUrl" placeholder="Paste ClickUp or Trello card link…" value="${t.cardUrl||''}" />
-            ${cardLinkHtml(t.cardUrl)}
+            <span id="cardUrlOpenWrap">${cardLinkHtml(t.cardUrl)}</span>
           </div>
         </div>
         <div class="field-block">
           <div class="flabel">Test plan URL</div>
           <div class="link-field-row">
             <input class="text-input" type="url" data-field="testPlan" placeholder="Paste link to test plan / brief…" value="${t.testPlan||''}" />
-            ${t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : ''}
+            <span id="testPlanOpenWrap">${t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : ''}</span>
           </div>
         </div>
         <div class="field-block">
           <div class="flabel">Mockup URL</div>
           <div class="link-field-row">
             <input class="text-input" type="url" data-field="mockupUrl" placeholder="Paste link to Figma / mockup…" value="${t.mockupUrl||''}" />
-            ${t.mockupUrl ? `<a class="link-open-btn" href="${t.mockupUrl}" target="_blank" rel="noopener">Open ↗</a>` : ''}
+            <span id="mockupOpenWrap">${t.mockupUrl ? `<a class="link-open-btn" href="${t.mockupUrl}" target="_blank" rel="noopener">Open ↗</a>` : ''}</span>
           </div>
         </div>
         <div class="field-block">
@@ -1245,8 +1245,27 @@ function openDrawer(id){
       }
       t[field] = value;
       updateTestRemote(t.id, {[field]:value});
-      renderAll();
-      setTimeout(()=> openDrawer(t.id), 0);
+      renderAll(); // refreshes the table/stats behind the drawer — never touches drawer DOM
+
+      // Targeted in-place updates only. Never rebuild the field the user just interacted
+      // with — replacing a <select>/<input> element in response to its own change event
+      // is what was causing the "needs two clicks" bug.
+      if(['potential','importance','ease'].includes(field)){
+        const badge = document.getElementById('pieTotalBadge');
+        if(badge) badge.innerHTML = pieBadgeHtml(t);
+      }
+      if(field==='testPlan'){
+        const wrap = document.getElementById('testPlanOpenWrap');
+        if(wrap) wrap.innerHTML = t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : '';
+      }
+      if(field==='mockupUrl'){
+        const wrap = document.getElementById('mockupOpenWrap');
+        if(wrap) wrap.innerHTML = t.mockupUrl ? `<a class="link-open-btn" href="${t.mockupUrl}" target="_blank" rel="noopener">Open ↗</a>` : '';
+      }
+      if(field==='cardUrl'){
+        const wrap = document.getElementById('cardUrlOpenWrap');
+        if(wrap) wrap.innerHTML = cardLinkHtml(t.cardUrl);
+      }
     });
   });
 
