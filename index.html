@@ -309,21 +309,40 @@
   }
   .shot-box.variant .shot-tag{color:var(--navy);}
   .dropzone{
-    width:100%;min-height:420px;border-radius:8px;background:#FAF8F3;
+    width:100%;height:420px;border-radius:8px;background:#FAF8F3;
     border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;
     overflow:hidden;cursor:pointer;transition:border-color .15s ease, background .15s ease;
     position:relative;
   }
   .dropzone:hover{border-color:var(--gold);}
   .dropzone.dragover{border-color:var(--navy);background:#F1ECDE;}
-  .dropzone img{width:100%;height:auto;display:block;}
+  .dropzone.has-image{display:block;cursor:default;}
+  .dropzone-scroll{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;}
+  .dropzone-scroll img{width:100%;height:auto;display:block;cursor:pointer;}
   .dropzone .empty{font-family:sans-serif;font-size:12.5px;color:#A79A82;font-style:italic;padding:20px;text-align:center;line-height:1.6;}
   .dropzone input[type="file"]{display:none;}
-  .shot-remove-btn{
-    font-family:sans-serif;font-size:11.5px;font-weight:700;color:var(--red);background:none;
-    border:none;cursor:pointer;margin-top:8px;padding:0;
+  .img-icon-btn{
+    position:absolute;width:30px;height:30px;border-radius:50%;
+    background:rgba(11,27,55,0.78);color:#fff;border:none;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;cursor:pointer;z-index:3;transition:background .15s ease;
+    padding:0;
   }
-  .shot-remove-btn:hover{text-decoration:underline;}
+  .img-icon-btn:hover{background:rgba(11,27,55,0.96);}
+  .img-remove-btn{top:8px;right:8px;}
+  .img-expand-btn{bottom:8px;right:8px;font-size:13px;}
+  .img-lightbox{
+    position:fixed;inset:0;background:rgba(11,27,55,0.92);z-index:100;
+    display:none;align-items:center;justify-content:center;padding:5vh 5vw;
+  }
+  .img-lightbox.open{display:flex;}
+  .img-lightbox img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,0.4);}
+  .img-lightbox-close{
+    position:fixed;top:20px;right:20px;width:42px;height:42px;border-radius:50%;
+    background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.35);
+    font-size:18px;cursor:pointer;z-index:101;
+  }
+  .img-lightbox-close:hover{background:rgba(255,255,255,0.22);}
   .link-field-row{display:flex;gap:8px;align-items:stretch;}
   .link-field-row input.text-input{flex:1;}
   .link-open-btn{
@@ -345,7 +364,7 @@
     .grid3{grid-template-columns:1fr;}
     .drawer-grid{grid-template-columns:1fr;}
     .drawer-col-shots{position:static;}
-    .dropzone{min-height:220px;}
+    .dropzone{height:260px;}
     .drawer-head{padding:18px 20px;}
     .drawer-body{padding:20px 20px 60px;}
   }
@@ -422,6 +441,11 @@
 </div>
 
 <div class="overlay" id="overlay"></div>
+
+<div class="img-lightbox" id="imgLightbox">
+  <button class="img-lightbox-close" id="imgLightboxClose" type="button" title="Close">✕</button>
+  <img id="imgLightboxImg" src="" alt="Full size preview" />
+</div>
 <div class="drawer" id="drawer">
   <div class="drawer-head">
     <div>
@@ -1008,6 +1032,37 @@ document.getElementById('pieHeader').addEventListener('click', ()=>{
 const overlay = document.getElementById('overlay');
 const drawer = document.getElementById('drawer');
 
+const imgLightbox = document.getElementById('imgLightbox');
+const imgLightboxImg = document.getElementById('imgLightboxImg');
+function openImageLightbox(url){
+  imgLightboxImg.src = url;
+  imgLightbox.classList.add('open');
+}
+function closeImageLightbox(){
+  imgLightbox.classList.remove('open');
+  imgLightboxImg.src = '';
+}
+document.getElementById('imgLightboxClose').addEventListener('click', closeImageLightbox);
+imgLightbox.addEventListener('click', e=>{ if(e.target===imgLightbox) closeImageLightbox(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeImageLightbox(); });
+
+function dropzoneHtml(imageUrl, zoneId, fileInputId){
+  if(imageUrl){
+    return `
+      <div class="dropzone has-image" id="${zoneId}">
+        <div class="dropzone-scroll"><img src="${imageUrl}" alt="Screenshot" /></div>
+        <button class="img-icon-btn img-remove-btn" type="button" title="Remove image">✕</button>
+        <button class="img-icon-btn img-expand-btn" type="button" title="View fullscreen">⤢</button>
+        <input type="file" accept="image/*" id="${fileInputId}" />
+      </div>`;
+  }
+  return `
+    <div class="dropzone" id="${zoneId}">
+      <span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>
+      <input type="file" accept="image/*" id="${fileInputId}" />
+    </div>`;
+}
+
 function cardLinkHtml(url){
   if(!url) return '';
   let label = 'Open card ↗';
@@ -1167,23 +1222,11 @@ function openDrawer(id){
           </div>
           <div class="shot-box">
             <span class="shot-tag">Control (A)</span>
-            <label class="dropzone" id="controlDropzone">
-              ${t[controlField]
-                ? `<img src="${t[controlField]}" alt="Control screenshot" />`
-                : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
-              <input type="file" accept="image/*" id="controlFileInput" />
-            </label>
-            ${t[controlField] ? `<button class="shot-remove-btn" id="controlRemoveBtn">Remove image</button>` : ''}
+            ${dropzoneHtml(t[controlField], 'controlDropzone', 'controlFileInput')}
           </div>
           <div class="shot-box variant">
             <span class="shot-tag">Variant (B)</span>
-            <label class="dropzone" id="variantDropzone">
-              ${t[variantField]
-                ? `<img src="${t[variantField]}" alt="Variant screenshot" />`
-                : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
-              <input type="file" accept="image/*" id="variantFileInput" />
-            </label>
-            ${t[variantField] ? `<button class="shot-remove-btn" id="variantRemoveBtn">Remove image</button>` : ''}
+            ${dropzoneHtml(t[variantField], 'variantDropzone', 'variantFileInput')}
           </div>
         </div>
       </div>
@@ -1203,7 +1246,7 @@ function openDrawer(id){
       t[field] = value;
       updateTestRemote(t.id, {[field]:value});
       renderAll();
-      openDrawer(t.id);
+      setTimeout(()=> openDrawer(t.id), 0);
     });
   });
 
@@ -1230,11 +1273,21 @@ function openDrawer(id){
     }
   }
 
-  function wireDropzone(zoneId, inputId, removeBtnId, field){
+  function wireDropzone(zoneId, inputId, field){
     const zone = document.getElementById(zoneId);
     const input = document.getElementById(inputId);
     if(!zone) return;
-    zone.addEventListener('click', e=>{ if(e.target.tagName!=='INPUT') input.click(); });
+
+    zone.addEventListener('click', e=>{
+      if(e.target.closest('.img-icon-btn')) return;
+      if(zone.classList.contains('has-image')){
+        const img = zone.querySelector('.dropzone-scroll img');
+        if(img) openImageLightbox(img.src);
+        return;
+      }
+      input.click();
+    });
+
     input.addEventListener('change', ()=> readImageFile(input.files[0], field, zoneId));
     zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', ()=> zone.classList.remove('dragover'));
@@ -1243,7 +1296,8 @@ function openDrawer(id){
       zone.classList.remove('dragover');
       readImageFile(e.dataTransfer.files[0], field, zoneId);
     });
-    const removeBtn = document.getElementById(removeBtnId);
+
+    const removeBtn = zone.querySelector('.img-remove-btn');
     if(removeBtn){
       removeBtn.addEventListener('click', e=>{
         e.stopPropagation();
@@ -1253,9 +1307,17 @@ function openDrawer(id){
         openDrawer(t.id);
       });
     }
+    const expandBtn = zone.querySelector('.img-expand-btn');
+    if(expandBtn){
+      expandBtn.addEventListener('click', e=>{
+        e.stopPropagation();
+        const img = zone.querySelector('.dropzone-scroll img');
+        if(img) openImageLightbox(img.src);
+      });
+    }
   }
-  wireDropzone('controlDropzone','controlFileInput','controlRemoveBtn',controlField);
-  wireDropzone('variantDropzone','variantFileInput','variantRemoveBtn',variantField);
+  wireDropzone('controlDropzone','controlFileInput',controlField);
+  wireDropzone('variantDropzone','variantFileInput',variantField);
 
   overlay.classList.add('open');
   drawer.classList.add('open');
@@ -1390,21 +1452,11 @@ function openAddDrawer(){
       </div>
       <div class="shot-box">
         <span class="shot-tag">Control (A)</span>
-        <label class="dropzone" id="newControlDropzone">
-          ${newImages[controlField]
-            ? `<img src="${newImages[controlField]}" alt="Control screenshot" />`
-            : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
-          <input type="file" accept="image/*" id="newControlFileInput" />
-        </label>
+        ${dropzoneHtml(newImages[controlField], 'newControlDropzone', 'newControlFileInput')}
       </div>
       <div class="shot-box variant">
         <span class="shot-tag">Variant (B)</span>
-        <label class="dropzone" id="newVariantDropzone">
-          ${newImages[variantField]
-            ? `<img src="${newImages[variantField]}" alt="Variant screenshot" />`
-            : `<span class="empty">Drag &amp; drop an image here,<br>or click to browse</span>`}
-          <input type="file" accept="image/*" id="newVariantFileInput" />
-        </label>
+        ${dropzoneHtml(newImages[variantField], 'newVariantDropzone', 'newVariantFileInput')}
       </div>
     `;
     document.querySelectorAll('#newShotSection .shot-view-btn').forEach(btn=>{
@@ -1432,7 +1484,15 @@ function openAddDrawer(){
     const zone = document.getElementById(zoneId);
     const input = document.getElementById(inputId);
     if(!zone || !input) return;
-    zone.onclick = e=>{ if(e.target.tagName!=='INPUT') input.click(); };
+    zone.onclick = e=>{
+      if(e.target.closest('.img-icon-btn')) return;
+      if(zone.classList.contains('has-image')){
+        const img = zone.querySelector('.dropzone-scroll img');
+        if(img) openImageLightbox(img.src);
+        return;
+      }
+      input.click();
+    };
     input.onchange = ()=> readNewImageFile(input.files[0], field, zoneId);
     zone.ondragover = e=>{ e.preventDefault(); zone.classList.add('dragover'); };
     zone.ondragleave = ()=> zone.classList.remove('dragover');
@@ -1441,6 +1501,22 @@ function openAddDrawer(){
       zone.classList.remove('dragover');
       readNewImageFile(e.dataTransfer.files[0], field, zoneId);
     };
+    const removeBtn = zone.querySelector('.img-remove-btn');
+    if(removeBtn){
+      removeBtn.onclick = e=>{
+        e.stopPropagation();
+        newImages[field] = '';
+        renderAddShotSection();
+      };
+    }
+    const expandBtn = zone.querySelector('.img-expand-btn');
+    if(expandBtn){
+      expandBtn.onclick = e=>{
+        e.stopPropagation();
+        const img = zone.querySelector('.dropzone-scroll img');
+        if(img) openImageLightbox(img.src);
+      };
+    }
   }
   renderAddShotSection();
 
