@@ -447,6 +447,7 @@
         <th>Est. live date</th>
         <th>Priority</th>
         <th class="th-sortable" id="pieHeader">PIE ↕</th>
+        <th>Duration</th>
         <th class="delete-col"></th>
       </tr>
     </thead>
@@ -888,7 +889,7 @@ function renderTable(){
   const body = document.getElementById('tableBody');
   const dragEnabled = sortMode==='default';
   if(rows.length===0){
-    body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center;color:var(--slate);padding:36px;">No tests match this view.</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(t=>`
@@ -908,6 +909,7 @@ function renderTable(){
       <td class="sans">${t.liveDate ? t.liveDate : '<span class="tbc">TBC</span>'}</td>
       <td>${priorityBadgeHtml(t)}</td>
       <td>${pieBadgeHtml(t)}</td>
+      <td class="sans" style="color:var(--slate);font-size:12.5px;">${t.testDuration!=null ? t.testDuration+'d' : '<span class="tbc">TBC</span>'}</td>
       <td class="delete-col"><button class="delete-row-btn" data-delete-id="${t.id}" title="Delete test" type="button">✕</button></td>
     </tr>
   `).join('');
