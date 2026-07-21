@@ -273,6 +273,19 @@
   .pie-total-row .ttl{font-size:11.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:0.8px;}
   .num-input-wrap{text-align:center;}
   .num-input-wrap .nl{font-size:10.5px;color:var(--slate);font-weight:700;text-transform:uppercase;display:block;margin-bottom:6px;}
+  .sd-box{border-top:1px dashed var(--line);padding-top:14px;}
+  .sd-empty{font-family:sans-serif;font-size:11.5px;color:#A79A82;font-style:italic;line-height:1.5;}
+  .sd-result{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .sd-main{font-family:sans-serif;font-size:12.5px;color:var(--ink);line-height:1.5;}
+  .sd-main b{font-family:Georgia,serif;font-size:14px;color:var(--deep-navy);}
+  .sd-sub{color:var(--slate);font-size:11.5px;}
+  .sd-use-btn{
+    font-family:sans-serif;font-size:11.5px;font-weight:700;color:var(--navy);
+    background:#EFEAE0;border:1px solid var(--line);border-radius:7px;
+    padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .15s ease;
+  }
+  .sd-use-btn:hover{background:var(--navy);color:var(--cream);border-color:var(--navy);}
+  .sd-assumptions{font-family:sans-serif;font-size:10.5px;color:#A79A82;margin-top:8px;line-height:1.5;}
   .save-note{font-size:11px;color:var(--slate);margin-top:24px;border-top:1px dashed var(--line);padding-top:14px;}
   .drawer-actions{display:flex;gap:10px;margin-top:26px;}
   .btn-primary{
@@ -318,7 +331,7 @@
   .dropzone.dragover{border-color:var(--navy);background:#F1ECDE;}
   .dropzone.has-image{display:block;cursor:default;}
   .dropzone-scroll{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;}
-  .dropzone-scroll img{width:100%;height:auto;display:block;cursor:pointer;}
+  .dropzone-scroll img{max-width:100%;width:auto;height:auto;display:block;cursor:pointer;margin:0 auto;}
   .dropzone .empty{font-family:sans-serif;font-size:12.5px;color:#A79A82;font-style:italic;padding:20px;text-align:center;line-height:1.6;}
   .dropzone input[type="file"]{display:none;}
   .img-icon-btn{
@@ -483,7 +496,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:1000
+    isPriority:false, sortOrder:1000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN02', page:'Homepage', device:'Mobile / Desktop',
@@ -494,7 +508,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:2000
+    isPriority:false, sortOrder:2000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN03', page:'Homepage', device:'Mobile / Desktop',
@@ -505,7 +520,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:3000
+    isPriority:false, sortOrder:3000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN04', page:'Navigation', device:'Desktop',
@@ -516,7 +532,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:4000
+    isPriority:false, sortOrder:4000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN05', page:'Navigation', device:'Mobile / Desktop',
@@ -527,7 +544,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:5000
+    isPriority:false, sortOrder:5000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN06', page:'Search', device:'Mobile / Desktop',
@@ -538,7 +556,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:6000
+    isPriority:false, sortOrder:6000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN07', page:'Search', device:'Mobile / Desktop',
@@ -549,7 +568,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:7000
+    isPriority:false, sortOrder:7000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
     id:'DLTN08', page:'Search', device:'Mobile / Desktop',
@@ -560,7 +580,8 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:8000
+    isPriority:false, sortOrder:8000,
+    testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
 ];
 
@@ -604,8 +625,11 @@ const FIELD_TO_COLUMN = {
   testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
   desktopControlImageUrl:'desktop_control_url', desktopVariantImageUrl:'desktop_variant_url',
   mobileControlImageUrl:'mobile_control_url', mobileVariantImageUrl:'mobile_variant_url',
-  isPriority:'is_priority', sortOrder:'sort_order'
+  isPriority:'is_priority', sortOrder:'sort_order',
+  testDuration:'test_duration', weeklySessions:'weekly_sessions', kpiConversionRate:'kpi_cr', mde:'mde'
 };
+
+const NUMERIC_FIELDS = ['potential','importance','ease','testDuration','weeklySessions','kpiConversionRate','mde'];
 
 function rowToTest(row){
   const t = { id: row.id };
@@ -619,9 +643,11 @@ function rowToTest(row){
       t[field] = row[col]===null || row[col]===undefined ? 0 : Number(row[col]);
       return;
     }
-    t[field] = row[col] === null || row[col] === undefined
-      ? (['potential','importance','ease'].includes(field) ? null : '')
-      : row[col];
+    if(NUMERIC_FIELDS.includes(field)){
+      t[field] = row[col]===null || row[col]===undefined ? null : Number(row[col]);
+      return;
+    }
+    t[field] = row[col] === null || row[col] === undefined ? '' : row[col];
   });
   return t;
 }
@@ -643,6 +669,12 @@ function showOfflineBanner(){
 }
 
 async function loadTestsFromSupabase(){
+  if(typeof dragState !== 'undefined' && dragState){
+    // A drag is actively in progress — replacing the table DOM right now would
+    // yank the row the user is holding out from under their cursor. Defer.
+    setTimeout(loadTestsFromSupabase, 400);
+    return;
+  }
   if(!supabaseAvailable){
     showOfflineBanner();
     renderAll();
@@ -958,9 +990,6 @@ function wireRowDragging(body, visibleRows){
       draggedEl = null;
     });
   });
-
-  // Allow dropping in the empty space below the last row too
-  body.addEventListener('dragover', e=> e.preventDefault());
 }
 
 function finalizeRowOrder(body){
@@ -1028,6 +1057,10 @@ document.getElementById('pieHeader').addEventListener('click', ()=>{
   document.getElementById('sortSelect').value = sortMode;
   renderTable();
 });
+
+// Allow dropping in the empty space below the last row too — attached once,
+// not on every render, so it doesn't accumulate duplicate listeners over time.
+document.getElementById('tableBody').addEventListener('dragover', e=> e.preventDefault());
 
 const overlay = document.getElementById('overlay');
 const drawer = document.getElementById('drawer');
@@ -1103,6 +1136,93 @@ function pieFieldsHtml(t){
       <div class="pie-total-row">
         <span class="ttl">Total PIE</span>
         <span id="pieTotalBadge">${pieBadgeHtml(t)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function calcSuggestedDuration(sessions, crPercent, mdePercent){
+  const s = Number(sessions), cr = Number(crPercent), mde = Number(mdePercent);
+  if(!s || !cr || !mde || s<=0 || cr<=0 || mde<=0) return null;
+  const p1 = cr/100;
+  const p2 = p1 * (1 + mde/100);
+  if(p1<=0 || p1>=1 || p2<=0 || p2>=1) return null;
+  const delta = Math.abs(p2-p1);
+  if(delta===0) return null;
+  const zAlpha = 1.96; // 95% confidence, two-tailed
+  const zBeta = 0.84;  // 80% power
+  const variance = p1*(1-p1) + p2*(1-p2);
+  const nPerVariant = ((zAlpha+zBeta)**2 * variance) / (delta**2);
+  const sessionsPerVariantPerWeek = s/2; // assumes an even 50/50 split, 2 variants
+  const weeksNeeded = nPerVariant / sessionsPerVariantPerWeek;
+  const days = Math.ceil(weeksNeeded*7);
+  return { days, nPerVariant: Math.ceil(nPerVariant) };
+}
+
+function suggestedDurationHtml(sessions, cr, mde){
+  const result = calcSuggestedDuration(sessions, cr, mde);
+  if(!result){
+    return `<div class="sd-empty">Fill in weekly sessions, KPI CR% and MDE to see a suggested duration.</div>`;
+  }
+  const weeks = (result.days/7).toFixed(1);
+  return `
+    <div class="sd-result">
+      <div class="sd-main">Suggested duration: <b>${result.days} days</b> <span class="sd-sub">(~${weeks} weeks · ~${result.nPerVariant.toLocaleString()} sessions/variant)</span></div>
+      <button class="sd-use-btn" type="button">Use this</button>
+    </div>
+    <div class="sd-assumptions">95% confidence, 80% power, MDE as relative uplift, traffic split evenly across 2 variants.</div>
+  `;
+}
+
+function wireTestParamsCalculator(prefix){
+  const sessionsEl = document.getElementById(prefix+'Sessions');
+  const crEl = document.getElementById(prefix+'Cr');
+  const mdeEl = document.getElementById(prefix+'Mde');
+  const durationEl = document.getElementById(prefix+'Duration');
+  const container = document.getElementById(prefix+'Suggested');
+  if(!sessionsEl || !crEl || !mdeEl || !durationEl || !container) return;
+
+  function refresh(){
+    container.innerHTML = suggestedDurationHtml(sessionsEl.value, crEl.value, mdeEl.value);
+    const useBtn = container.querySelector('.sd-use-btn');
+    if(useBtn){
+      useBtn.addEventListener('click', ()=>{
+        const result = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
+        if(!result) return;
+        durationEl.value = result.days;
+        durationEl.dispatchEvent(new Event('change', {bubbles:true}));
+      });
+    }
+  }
+  [sessionsEl, crEl, mdeEl].forEach(el=> el.addEventListener('input', refresh));
+}
+
+function testParamsHtml(t, prefix){
+  return `
+    <div class="pie-box">
+      <div class="flabel">Test parameters</div>
+      <div class="grid2" style="margin-bottom:14px;">
+        <div class="num-input-wrap">
+          <span class="nl">Test duration (days)</span>
+          <input class="text-input" type="number" min="0" step="1" id="${prefix}Duration" placeholder="e.g. 28" value="${t&&t.testDuration!=null?t.testDuration:''}" />
+        </div>
+        <div class="num-input-wrap">
+          <span class="nl">Weekly sessions</span>
+          <input class="text-input" type="number" min="0" step="1" id="${prefix}Sessions" placeholder="e.g. 12000" value="${t&&t.weeklySessions!=null?t.weeklySessions:''}" />
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:14px;">
+        <div class="num-input-wrap">
+          <span class="nl">KPI CR%</span>
+          <input class="text-input" type="number" min="0" max="100" step="0.01" id="${prefix}Cr" placeholder="e.g. 2.4" value="${t&&t.kpiConversionRate!=null?t.kpiConversionRate:''}" />
+        </div>
+        <div class="num-input-wrap">
+          <span class="nl">Min. detectable effect (%)</span>
+          <input class="text-input" type="number" min="0" step="0.01" id="${prefix}Mde" placeholder="e.g. 10" value="${t&&t.mde!=null?t.mde:''}" />
+        </div>
+      </div>
+      <div class="sd-box" id="${prefix}Suggested">
+        ${suggestedDurationHtml(t&&t.weeklySessions, t&&t.kpiConversionRate, t&&t.mde)}
       </div>
     </div>
   `;
@@ -1184,6 +1304,7 @@ function openDrawer(id){
           </select>
         </div>
         ${pieFieldsHtml(t)}
+        ${testParamsHtml(t, 'editParam')}
         <div class="field-block">
           <div class="flabel">Briefing card link (ClickUp / Trello)</div>
           <div class="link-field-row">
@@ -1268,6 +1389,23 @@ function openDrawer(id){
       }
     });
   });
+
+  [
+    ['editParamDuration','testDuration'],
+    ['editParamSessions','weeklySessions'],
+    ['editParamCr','kpiConversionRate'],
+    ['editParamMde','mde']
+  ].forEach(([elId, field])=>{
+    const el = document.getElementById(elId);
+    if(!el) return;
+    el.addEventListener('change', ()=>{
+      const value = el.value===''? null : Number(el.value);
+      t[field] = value;
+      updateTestRemote(t.id, {[field]:value});
+      renderAll();
+    });
+  });
+  wireTestParamsCalculator('editParam');
 
   document.querySelectorAll('#drawerBody .shot-view-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -1439,6 +1577,7 @@ function openAddDrawer(){
             </div>
           </div>
         </div>
+        ${testParamsHtml(null, 'newParam')}
         <div class="field-block">
           <div class="flabel">Briefing card link (ClickUp / Trello)</div>
           <input class="text-input" type="url" id="newCardUrl" placeholder="Paste ClickUp or Trello card link…" />
@@ -1538,6 +1677,7 @@ function openAddDrawer(){
     }
   }
   renderAddShotSection();
+  wireTestParamsCalculator('newParam');
 
   document.getElementById('saveNewBtn').addEventListener('click', ()=>{
     const title = document.getElementById('newTitle').value.trim();
@@ -1565,6 +1705,10 @@ function openAddDrawer(){
       mobileControlImageUrl: newImages.mobileControlImageUrl,
       mobileVariantImageUrl: newImages.mobileVariantImageUrl,
       testPlan:'', mockupUrl:'', cardUrl: document.getElementById('newCardUrl').value.trim(), testResult:'', testLearnings:'',
+      testDuration: document.getElementById('newParamDuration').value===''? null : Number(document.getElementById('newParamDuration').value),
+      weeklySessions: document.getElementById('newParamSessions').value===''? null : Number(document.getElementById('newParamSessions').value),
+      kpiConversionRate: document.getElementById('newParamCr').value===''? null : Number(document.getElementById('newParamCr').value),
+      mde: document.getElementById('newParamMde').value===''? null : Number(document.getElementById('newParamMde').value),
       isPriority: document.getElementById('newIsPriority').value==='true',
       sortOrder: (Math.max(0, ...TESTS.map(x=>x.sortOrder||0)) + 1000)
     };
