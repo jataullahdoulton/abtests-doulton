@@ -1169,57 +1169,26 @@ function suggestedDurationHtml(sessions, cr, mde){
   return `
     <div class="sd-result">
       <div class="sd-main">Calculated duration: <b>${result.days} days</b> <span class="sd-sub">(~${weeks} weeks · ~${result.nPerVariant.toLocaleString()} sessions/variant)</span></div>
-      <button class="sd-use-btn" type="button">Reset to calculated</button>
     </div>
     <div class="sd-assumptions">95% confidence, 80% power, MDE as relative uplift, traffic split evenly across 2 variants.</div>
   `;
 }
 
-function wireTestParamsCalculator(prefix){
+function wireTestParamsCalculator(prefix, onDurationChange){
   const sessionsEl = document.getElementById(prefix+'Sessions');
   const crEl = document.getElementById(prefix+'Cr');
   const mdeEl = document.getElementById(prefix+'Mde');
-  const durationEl = document.getElementById(prefix+'Duration');
   const container = document.getElementById(prefix+'Suggested');
-  if(!sessionsEl || !crEl || !mdeEl || !durationEl || !container) return;
-
-  // A duration value that arrived here already saved (loaded from an existing test)
-  // counts as a deliberate manual entry, not something to silently overwrite.
-  if(durationEl.value !== ''){
-    durationEl.dataset.autoFilled = 'false';
-  }
-
-  function setDuration(days){
-    durationEl.value = days;
-    durationEl.dataset.autoFilled = 'true';
-    durationEl.dispatchEvent(new Event('change', {bubbles:true}));
-  }
+  if(!sessionsEl || !crEl || !mdeEl || !container) return;
 
   function refresh(){
     const result = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
-    const isManual = durationEl.value !== '' && durationEl.dataset.autoFilled !== 'true';
-
-    // Auto-fill duration the moment all three inputs are present — unless the
-    // person has deliberately typed their own number into Duration already.
-    if(result && !isManual && Number(durationEl.value)!==result.days){
-      setDuration(result.days);
-    }
-
     container.innerHTML = result
       ? suggestedDurationHtml(sessionsEl.value, crEl.value, mdeEl.value)
       : `<div class="sd-empty">Fill in weekly sessions, KPI CR% and MDE to calculate the required duration.</div>`;
-
-    const useBtn = container.querySelector('.sd-use-btn');
-    if(useBtn){
-      useBtn.classList.toggle('sd-use-hidden', !isManual);
-      useBtn.addEventListener('click', ()=>{
-        const r = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
-        if(r) setDuration(r.days);
-      });
-    }
+    container.dataset.days = result ? result.days : '';
+    if(onDurationChange) onDurationChange(result ? result.days : null);
   }
-
-  durationEl.addEventListener('input', ()=>{ durationEl.dataset.autoFilled = 'false'; });
   [sessionsEl, crEl, mdeEl].forEach(el=> el.addEventListener('input', refresh));
   refresh();
 }
@@ -1228,17 +1197,11 @@ function testParamsHtml(t, prefix){
   return `
     <div class="pie-box">
       <div class="flabel">Test parameters</div>
-      <div class="grid2" style="margin-bottom:14px;">
-        <div class="num-input-wrap">
-          <span class="nl">Test duration (days)</span>
-          <input class="text-input" type="number" min="0" step="1" id="${prefix}Duration" placeholder="e.g. 28" value="${t&&t.testDuration!=null?t.testDuration:''}" />
-        </div>
+      <div class="grid3" style="margin-bottom:14px;">
         <div class="num-input-wrap">
           <span class="nl">Weekly sessions</span>
           <input class="text-input" type="number" min="0" step="1" id="${prefix}Sessions" placeholder="e.g. 12000" value="${t&&t.weeklySessions!=null?t.weeklySessions:''}" />
         </div>
-      </div>
-      <div class="grid2" style="margin-bottom:14px;">
         <div class="num-input-wrap">
           <span class="nl">KPI CR%</span>
           <input class="text-input" type="number" min="0" max="100" step="0.01" id="${prefix}Cr" placeholder="e.g. 2.4" value="${t&&t.kpiConversionRate!=null?t.kpiConversionRate:''}" />
@@ -1418,7 +1381,6 @@ function openDrawer(id){
   });
 
   [
-    ['editParamDuration','testDuration'],
     ['editParamSessions','weeklySessions'],
     ['editParamCr','kpiConversionRate'],
     ['editParamMde','mde']
@@ -1432,7 +1394,12 @@ function openDrawer(id){
       renderAll();
     });
   });
-  wireTestParamsCalculator('editParam');
+  wireTestParamsCalculator('editParam', (days)=>{
+    if(days!=null && days!==t.testDuration){
+      t.testDuration = days;
+      updateTestRemote(t.id, {testDuration: days});
+    }
+  });
 
   document.querySelectorAll('#drawerBody .shot-view-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -1732,7 +1699,7 @@ function openAddDrawer(){
       mobileControlImageUrl: newImages.mobileControlImageUrl,
       mobileVariantImageUrl: newImages.mobileVariantImageUrl,
       testPlan:'', mockupUrl:'', cardUrl: document.getElementById('newCardUrl').value.trim(), testResult:'', testLearnings:'',
-      testDuration: document.getElementById('newParamDuration').value===''? null : Number(document.getElementById('newParamDuration').value),
+      testDuration: (()=>{ const d = document.getElementById('newParamSuggested'); const v = d && d.dataset.days; return v ? Number(v) : null; })(),
       weeklySessions: document.getElementById('newParamSessions').value===''? null : Number(document.getElementById('newParamSessions').value),
       kpiConversionRate: document.getElementById('newParamCr').value===''? null : Number(document.getElementById('newParamCr').value),
       mde: document.getElementById('newParamMde').value===''? null : Number(document.getElementById('newParamMde').value),
