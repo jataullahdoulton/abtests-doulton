@@ -285,6 +285,7 @@
     padding:8px 14px;cursor:pointer;white-space:nowrap;transition:all .15s ease;
   }
   .sd-use-btn:hover{background:var(--navy);color:var(--cream);border-color:var(--navy);}
+  .sd-use-btn.sd-use-hidden{display:none;}
   .sd-assumptions{font-family:sans-serif;font-size:10.5px;color:#A79A82;margin-top:8px;line-height:1.5;}
   .save-note{font-size:11px;color:var(--slate);margin-top:24px;border-top:1px dashed var(--line);padding-top:14px;}
   .drawer-actions{display:flex;gap:10px;margin-top:26px;}
@@ -1162,13 +1163,13 @@ function calcSuggestedDuration(sessions, crPercent, mdePercent){
 function suggestedDurationHtml(sessions, cr, mde){
   const result = calcSuggestedDuration(sessions, cr, mde);
   if(!result){
-    return `<div class="sd-empty">Fill in weekly sessions, KPI CR% and MDE to see a suggested duration.</div>`;
+    return `<div class="sd-empty">Fill in weekly sessions, KPI CR% and MDE to calculate the required duration.</div>`;
   }
   const weeks = (result.days/7).toFixed(1);
   return `
     <div class="sd-result">
-      <div class="sd-main">Suggested duration: <b>${result.days} days</b> <span class="sd-sub">(~${weeks} weeks · ~${result.nPerVariant.toLocaleString()} sessions/variant)</span></div>
-      <button class="sd-use-btn" type="button">Use this</button>
+      <div class="sd-main">Calculated duration: <b>${result.days} days</b> <span class="sd-sub">(~${weeks} weeks · ~${result.nPerVariant.toLocaleString()} sessions/variant)</span></div>
+      <button class="sd-use-btn" type="button">Reset to calculated</button>
     </div>
     <div class="sd-assumptions">95% confidence, 80% power, MDE as relative uplift, traffic split evenly across 2 variants.</div>
   `;
@@ -1182,19 +1183,45 @@ function wireTestParamsCalculator(prefix){
   const container = document.getElementById(prefix+'Suggested');
   if(!sessionsEl || !crEl || !mdeEl || !durationEl || !container) return;
 
+  // A duration value that arrived here already saved (loaded from an existing test)
+  // counts as a deliberate manual entry, not something to silently overwrite.
+  if(durationEl.value !== ''){
+    durationEl.dataset.autoFilled = 'false';
+  }
+
+  function setDuration(days){
+    durationEl.value = days;
+    durationEl.dataset.autoFilled = 'true';
+    durationEl.dispatchEvent(new Event('change', {bubbles:true}));
+  }
+
   function refresh(){
-    container.innerHTML = suggestedDurationHtml(sessionsEl.value, crEl.value, mdeEl.value);
+    const result = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
+    const isManual = durationEl.value !== '' && durationEl.dataset.autoFilled !== 'true';
+
+    // Auto-fill duration the moment all three inputs are present — unless the
+    // person has deliberately typed their own number into Duration already.
+    if(result && !isManual && Number(durationEl.value)!==result.days){
+      setDuration(result.days);
+    }
+
+    container.innerHTML = result
+      ? suggestedDurationHtml(sessionsEl.value, crEl.value, mdeEl.value)
+      : `<div class="sd-empty">Fill in weekly sessions, KPI CR% and MDE to calculate the required duration.</div>`;
+
     const useBtn = container.querySelector('.sd-use-btn');
     if(useBtn){
+      useBtn.classList.toggle('sd-use-hidden', !isManual);
       useBtn.addEventListener('click', ()=>{
-        const result = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
-        if(!result) return;
-        durationEl.value = result.days;
-        durationEl.dispatchEvent(new Event('change', {bubbles:true}));
+        const r = calcSuggestedDuration(sessionsEl.value, crEl.value, mdeEl.value);
+        if(r) setDuration(r.days);
       });
     }
   }
+
+  durationEl.addEventListener('input', ()=>{ durationEl.dataset.autoFilled = 'false'; });
   [sessionsEl, crEl, mdeEl].forEach(el=> el.addEventListener('input', refresh));
+  refresh();
 }
 
 function testParamsHtml(t, prefix){
