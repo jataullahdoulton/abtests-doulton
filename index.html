@@ -216,6 +216,14 @@
   }
   .drawer-head .id{font-family:monospace;font-size:12px;color:var(--slate);margin-bottom:6px;}
   .drawer-head h2{margin:0;font-size:26px;color:var(--deep-navy);font-weight:600;max-width:600px;}
+  .drawer-head-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .copy-link-btn{
+    font-family:sans-serif;font-size:12.5px;font-weight:700;color:var(--navy);
+    background:#EFEAE0;border:1px solid var(--line);border-radius:20px;
+    padding:9px 16px;cursor:pointer;white-space:nowrap;transition:all .15s ease;
+  }
+  .copy-link-btn:hover{background:var(--navy);color:var(--cream);border-color:var(--navy);}
+  .copy-link-btn.copied{background:#DCEEE1;color:#2F6B44;border-color:#BFE0CB;}
   .close-btn{
     background:none;border:1px solid var(--line);width:36px;height:36px;border-radius:50%;
     cursor:pointer;font-size:16px;color:var(--slate);flex-shrink:0;
@@ -472,7 +480,10 @@
       <div class="id" id="dId">—</div>
       <h2 id="dTitle">—</h2>
     </div>
-    <button class="close-btn" id="closeBtn">✕</button>
+    <div class="drawer-head-actions">
+      <button class="copy-link-btn" id="copyLinkBtn" type="button">Copy link</button>
+      <button class="close-btn" id="closeBtn">✕</button>
+    </div>
   </div>
   <div class="drawer-body" id="drawerBody"></div>
 </div>
@@ -1251,16 +1262,23 @@ function openDrawer(id){
   const variantField = activeShotView + 'VariantImageUrl';
   document.getElementById('dId').textContent = `${t.id} · ${t.page}`;
   document.getElementById('dTitle').textContent = t.title;
+  if(window.location.hash !== '#test=' + encodeURIComponent(t.id)){
+    history.replaceState(null, '', '#test=' + encodeURIComponent(t.id));
+  }
 
   document.getElementById('drawerBody').innerHTML = `
     <div class="drawer-grid">
       <div class="drawer-col-main">
-        <div class="field-block">
-          <div class="flabel">Test ID</div>
-          <div class="link-field-row">
-            <input class="text-input mono" id="editTestId" value="${t.id}" placeholder="e.g. DLTN09" />
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Test name</div>
+            <input class="text-input" type="text" data-field="title" value="${t.title||''}" placeholder="e.g. PDP Redesign" />
           </div>
-          <div class="id-hint" id="editTestIdHint"></div>
+          <div class="field-block">
+            <div class="flabel">Test ID</div>
+            <input class="text-input mono" id="editTestId" value="${t.id}" placeholder="e.g. DLTN09" />
+            <div class="id-hint" id="editTestIdHint"></div>
+          </div>
         </div>
         <div class="field-block">
           <div class="flabel">Overview</div>
@@ -1384,14 +1402,22 @@ function openDrawer(id){
         idHint.className = 'id-hint error';
         return;
       }
-      if(TESTS.some(x=> x.id===newId && x!==t)){
-        idInput.value = oldId;
-        idHint.textContent = `"${newId}" is already used by another test.`;
-        idHint.className = 'id-hint error';
-        return;
-      }
+      const conflictTest = TESTS.find(x=> x.id===newId && x!==t);
       idHint.textContent = 'Saving…';
       idHint.className = 'id-hint';
+
+      if(conflictTest){
+        const bumpedId = nextAvailableId();
+        const { error: bumpError } = await renameTestRemote(conflictTest.id, bumpedId);
+        if(bumpError){
+          idInput.value = oldId;
+          idHint.textContent = "Couldn't resolve the ID conflict — try again.";
+          idHint.className = 'id-hint error';
+          return;
+        }
+        conflictTest.id = bumpedId;
+      }
+
       const { error } = await renameTestRemote(oldId, newId);
       if(error){
         idInput.value = oldId;
@@ -1402,7 +1428,10 @@ function openDrawer(id){
       t.id = newId;
       if(activeShotTestId === oldId) activeShotTestId = newId;
       document.getElementById('dId').textContent = `${t.id} · ${t.page}`;
-      idHint.textContent = 'Renamed.';
+      history.replaceState(null, '', '#test=' + encodeURIComponent(t.id));
+      idHint.textContent = conflictTest
+        ? `Renamed. "${newId}" was already in use, so that test was moved to ${conflictTest.id}.`
+        : 'Renamed.';
       idHint.className = 'id-hint success';
       renderAll();
     });
@@ -1440,6 +1469,10 @@ function openDrawer(id){
       if(field==='cardUrl'){
         const wrap = document.getElementById('cardUrlOpenWrap');
         if(wrap) wrap.innerHTML = cardLinkHtml(t.cardUrl);
+      }
+      if(field==='title'){
+        const heading = document.getElementById('dTitle');
+        if(heading) heading.textContent = t.title || '(untitled test)';
       }
     });
   });
@@ -1545,6 +1578,20 @@ function nextId(){
     .map(m=>parseInt(m[1],10));
   const next = (nums.length ? Math.max(...nums) : 0) + 1;
   return 'DLTN' + String(next).padStart(2,'0');
+}
+
+function nextAvailableId(){
+  const nums = TESTS
+    .map(t=>t.id.match(/DLTN(\d+)/))
+    .filter(Boolean)
+    .map(m=>parseInt(m[1],10));
+  let next = (nums.length ? Math.max(...nums) : 0) + 1;
+  let candidate = 'DLTN' + String(next).padStart(2,'0');
+  while(TESTS.some(x=>x.id===candidate)){
+    next++;
+    candidate = 'DLTN' + String(next).padStart(2,'0');
+  }
+  return candidate;
 }
 
 function openAddDrawer(){
@@ -1807,12 +1854,55 @@ function closeDrawer(){
   }
   overlay.classList.remove('open');
   drawer.classList.remove('open');
+  if(window.location.hash.startsWith('#test=')){
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
 }
 overlay.addEventListener('click', closeDrawer);
 document.getElementById('closeBtn').addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
 
-loadTestsFromSupabase();
+document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
+  const url = window.location.href;
+  const btn = document.getElementById('copyLinkBtn');
+  try{
+    await navigator.clipboard.writeText(url);
+  }catch(e){
+    // Fallback for browsers/contexts that block the Clipboard API
+    const temp = document.createElement('textarea');
+    temp.value = url;
+    temp.style.position = 'fixed';
+    temp.style.opacity = '0';
+    document.body.appendChild(temp);
+    temp.select();
+    try{ document.execCommand('copy'); }catch(e2){}
+    document.body.removeChild(temp);
+  }
+  const original = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(()=>{
+    btn.textContent = original;
+    btn.classList.remove('copied');
+  }, 1800);
+});
+
+// Deep-link support: open a specific test's drawer if the URL has #test=DLTNxx,
+// once the real data has loaded. Only runs once, so realtime refreshes don't
+// keep re-opening a drawer the person already closed.
+let deepLinkHandled = false;
+function handleDeepLink(){
+  if(deepLinkHandled) return;
+  const match = window.location.hash.match(/^#test=(.+)$/);
+  if(!match) { deepLinkHandled = true; return; }
+  const id = decodeURIComponent(match[1]);
+  if(TESTS.some(t=>t.id===id)){
+    deepLinkHandled = true;
+    openDrawer(id);
+  }
+}
+
+loadTestsFromSupabase().then(()=> handleDeepLink());
 </script>
 </body>
 </html>
