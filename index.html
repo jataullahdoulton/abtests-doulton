@@ -359,6 +359,10 @@
   }
   .img-lightbox-close:hover{background:rgba(255,255,255,0.22);}
   .link-field-row{display:flex;gap:8px;align-items:stretch;}
+  .text-input.mono{font-family:"SF Mono","Roboto Mono",monospace;letter-spacing:0.3px;}
+  .id-hint{font-family:sans-serif;font-size:11px;margin-top:6px;min-height:14px;}
+  .id-hint.error{color:var(--red);}
+  .id-hint.success{color:#2F6B44;}
   .link-field-row input.text-input{flex:1;}
   .link-open-btn{
     font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);
@@ -728,6 +732,18 @@ async function deleteTestRemote(id){
     if(error) console.error('Supabase delete failed:', error);
   }catch(e){
     console.error('Supabase delete failed:', e);
+  }
+}
+
+async function renameTestRemote(oldId, newId){
+  if(!supabaseAvailable) return { error: null };
+  try{
+    const { error } = await sb.from('tests').update({ id: newId }).eq('id', oldId);
+    if(error) console.error('Supabase rename failed:', error);
+    return { error };
+  }catch(e){
+    console.error('Supabase rename failed:', e);
+    return { error: e };
   }
 }
 
@@ -1240,6 +1256,13 @@ function openDrawer(id){
     <div class="drawer-grid">
       <div class="drawer-col-main">
         <div class="field-block">
+          <div class="flabel">Test ID</div>
+          <div class="link-field-row">
+            <input class="text-input mono" id="editTestId" value="${t.id}" placeholder="e.g. DLTN09" />
+          </div>
+          <div class="id-hint" id="editTestIdHint"></div>
+        </div>
+        <div class="field-block">
           <div class="flabel">Overview</div>
           <textarea class="notes" data-field="overview" placeholder="What's changing and why…">${t.overview||''}</textarea>
         </div>
@@ -1347,6 +1370,43 @@ function openDrawer(id){
       </div>
     </div>
   `;
+
+  const idInput = document.getElementById('editTestId');
+  const idHint = document.getElementById('editTestIdHint');
+  if(idInput){
+    idInput.addEventListener('change', async ()=>{
+      const newId = idInput.value.trim();
+      const oldId = t.id;
+      if(newId===oldId) return;
+      if(!newId){
+        idInput.value = oldId;
+        idHint.textContent = "ID can't be empty.";
+        idHint.className = 'id-hint error';
+        return;
+      }
+      if(TESTS.some(x=> x.id===newId && x!==t)){
+        idInput.value = oldId;
+        idHint.textContent = `"${newId}" is already used by another test.`;
+        idHint.className = 'id-hint error';
+        return;
+      }
+      idHint.textContent = 'Saving…';
+      idHint.className = 'id-hint';
+      const { error } = await renameTestRemote(oldId, newId);
+      if(error){
+        idInput.value = oldId;
+        idHint.textContent = "Couldn't rename — try again.";
+        idHint.className = 'id-hint error';
+        return;
+      }
+      t.id = newId;
+      if(activeShotTestId === oldId) activeShotTestId = newId;
+      document.getElementById('dId').textContent = `${t.id} · ${t.page}`;
+      idHint.textContent = 'Renamed.';
+      idHint.className = 'id-hint success';
+      renderAll();
+    });
+  }
 
   document.querySelectorAll('#drawerBody [data-field]').forEach(el=>{
     el.addEventListener('change', ()=>{
