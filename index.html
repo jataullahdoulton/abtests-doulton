@@ -513,7 +513,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:1000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -525,7 +525,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:2000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -537,7 +537,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:3000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -549,7 +549,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:4000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -561,7 +561,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:5000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -573,7 +573,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:6000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -585,7 +585,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:7000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -597,7 +597,7 @@ let TESTS = [
     potential:null, importance:null, ease:null,
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
-    hypothesis:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
+    hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
     isPriority:false, sortOrder:8000,
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
@@ -637,7 +637,7 @@ async function uploadToCloudinary(file){
 }
 
 const FIELD_TO_COLUMN = {
-  title:'title', overview:'overview', hypothesis:'hypothesis', page:'page', device:'device', stage:'stage',
+  title:'title', overview:'overview', hypothesis:'hypothesis', rationale:'rationale', page:'page', device:'device', stage:'stage',
   testType:'test_type', signOff:'sign_off', liveDate:'live_date',
   potential:'potential', importance:'importance', ease:'ease',
   testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
@@ -1281,6 +1281,10 @@ function openDrawer(id){
           </div>
         </div>
         <div class="field-block">
+          <div class="flabel">Why this test? (Rationale / evidence)</div>
+          <textarea class="notes" data-field="rationale" placeholder="What data or context led to this test being prioritised…">${t.rationale||''}</textarea>
+        </div>
+        <div class="field-block">
           <div class="flabel">Overview</div>
           <textarea class="notes" data-field="overview" placeholder="What's changing and why…">${t.overview||''}</textarea>
         </div>
@@ -1608,6 +1612,10 @@ function openAddDrawer(){
           <input class="text-input" id="newTitle" placeholder="e.g. Sticky Add to Basket Bar" />
         </div>
         <div class="field-block">
+          <div class="flabel">Why this test? (Rationale / evidence)</div>
+          <textarea class="notes" id="newRationale" placeholder="What data or context led to this test being prioritised…"></textarea>
+        </div>
+        <div class="field-block">
           <div class="flabel">Overview</div>
           <textarea class="notes" id="newOverview" placeholder="What's changing and why…"></textarea>
         </div>
@@ -1797,6 +1805,7 @@ function openAddDrawer(){
       device: document.getElementById('newDevice').value,
       title,
       overview: document.getElementById('newOverview').value.trim(),
+      rationale: document.getElementById('newRationale').value.trim(),
       hypothesis: document.getElementById('newHypothesis').value.trim(),
       stage: document.getElementById('newStage').value,
       testType: document.getElementById('newType').value,
