@@ -1352,13 +1352,6 @@ function openDrawer(id){
           </div>
         </div>
         <div class="field-block">
-          <div class="flabel">Test plan URL</div>
-          <div class="link-field-row">
-            <input class="text-input" type="url" data-field="testPlan" placeholder="Paste link to test plan / brief…" value="${t.testPlan||''}" />
-            <span id="testPlanOpenWrap">${t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : ''}</span>
-          </div>
-        </div>
-        <div class="field-block">
           <div class="flabel">Mockup URL</div>
           <div class="link-field-row">
             <input class="text-input" type="url" data-field="mockupUrl" placeholder="Paste link to Figma / mockup…" value="${t.mockupUrl||''}" />
@@ -1461,10 +1454,6 @@ function openDrawer(id){
       if(['potential','importance','ease'].includes(field)){
         const badge = document.getElementById('pieTotalBadge');
         if(badge) badge.innerHTML = pieBadgeHtml(t);
-      }
-      if(field==='testPlan'){
-        const wrap = document.getElementById('testPlanOpenWrap');
-        if(wrap) wrap.innerHTML = t.testPlan ? `<a class="link-open-btn" href="${t.testPlan}" target="_blank" rel="noopener">Open ↗</a>` : '';
       }
       if(field==='mockupUrl'){
         const wrap = document.getElementById('mockupOpenWrap');
