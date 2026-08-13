@@ -870,7 +870,7 @@ function filteredTests(){
   let rows = TESTS.filter(t=>{
     const matchesStage = activeFilter==='all' || t.stage===activeFilter;
     const matchesPage = activePageFilter==='all' || t.page===activePageFilter;
-    const matchesPriority = activePriorityFilter==='priority' ? t.isPriority
+    const matchesPriority = activePriorityFilter==='priority' ? (t.isPriority && t.stage!=='completed')
       : activePriorityFilter==='completed' ? t.stage==='completed'
       : true;
     const s = searchTerm.toLowerCase();
