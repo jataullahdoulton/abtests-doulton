@@ -443,6 +443,7 @@
 <div class="priority-tabs" id="priorityTabs">
   <button class="tab active" data-priority="backlog" type="button">Backlog</button>
   <button class="tab" data-priority="priority" type="button">Priority</button>
+  <button class="tab" data-priority="completed" type="button">Completed</button>
 </div>
 
 <div class="table-wrap">
@@ -869,7 +870,9 @@ function filteredTests(){
   let rows = TESTS.filter(t=>{
     const matchesStage = activeFilter==='all' || t.stage===activeFilter;
     const matchesPage = activePageFilter==='all' || t.page===activePageFilter;
-    const matchesPriority = activePriorityFilter==='priority' ? t.isPriority : true;
+    const matchesPriority = activePriorityFilter==='priority' ? t.isPriority
+      : activePriorityFilter==='completed' ? t.stage==='completed'
+      : true;
     const s = searchTerm.toLowerCase();
     const matchesSearch = !s || (t.title+t.overview+t.id+t.page).toLowerCase().includes(s);
     return matchesStage && matchesPage && matchesPriority && matchesSearch && matchesPieFilter(t);
