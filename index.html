@@ -126,6 +126,43 @@
     background:var(--deep-navy);color:var(--cream);cursor:pointer;white-space:nowrap;
   }
   .add-btn:hover{background:var(--navy);}
+  .roadmap-wrap{margin:0 40px 60px;}
+  .roadmap-month{margin-bottom:22px;}
+  .roadmap-month-header{
+    display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-size:17px;
+    color:var(--deep-navy);font-weight:600;padding-bottom:10px;margin-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+  .roadmap-month-count{
+    font-family:sans-serif;font-size:11px;font-weight:700;color:var(--slate);
+    background:#EFEAE0;padding:2px 9px;border-radius:10px;
+  }
+  .roadmap-unscheduled .roadmap-month-header{color:var(--slate);}
+  .roadmap-rows{display:flex;flex-direction:column;gap:8px;}
+  .roadmap-row{
+    display:flex;align-items:center;gap:16px;background:var(--white);
+    border:1px solid var(--line);border-radius:8px;padding:12px 16px;
+    cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .roadmap-row:hover{border-color:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+  .roadmap-row-date{
+    font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);
+    width:52px;flex-shrink:0;text-align:center;
+  }
+  .roadmap-row-main{flex:1;min-width:0;}
+  .roadmap-row-title{font-family:Georgia,serif;font-size:14px;color:var(--deep-navy);font-weight:600;margin-bottom:4px;}
+  .roadmap-row-meta{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+  .roadmap-empty{font-family:sans-serif;color:var(--slate);font-size:13px;padding:36px;text-align:center;}
+  .roadmap-month-empty{
+    font-family:sans-serif;font-size:12.5px;color:#A79A82;font-style:italic;
+    padding:14px 16px;border:1px dashed var(--line);border-radius:8px;
+  }
+  .roadmap-add-btn{
+    margin-top:10px;font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);
+    background:none;border:1px dashed var(--line);border-radius:8px;padding:9px 14px;
+    cursor:pointer;width:100%;text-align:left;transition:all .15s ease;
+  }
+  .roadmap-add-btn:hover{border-color:var(--gold);background:#FBF9F3;}
   .table-wrap{margin:0 40px 60px;background:var(--white);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
   table{width:100%;border-collapse:collapse;font-family:sans-serif;}
   thead th{
@@ -366,6 +403,42 @@
     font-size:18px;cursor:pointer;z-index:101;
   }
   .img-lightbox-close:hover{background:rgba(255,255,255,0.22);}
+  .roadmap-month-actions{display:flex;gap:8px;margin-top:10px;}
+  .roadmap-month-actions .roadmap-add-btn,.roadmap-month-actions .roadmap-pick-btn{margin-top:0;flex:1;}
+  .roadmap-pick-btn{
+    font-family:sans-serif;font-size:12px;font-weight:700;color:var(--slate);
+    background:#EFEAE0;border:1px solid var(--line);border-radius:8px;padding:9px 14px;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .roadmap-pick-btn:hover{background:var(--navy);color:var(--cream);border-color:var(--navy);}
+  .picker-overlay{
+    position:fixed;inset:0;background:rgba(11,27,55,0.5);z-index:110;
+    display:none;align-items:center;justify-content:center;padding:24px;
+  }
+  .picker-overlay.open{display:flex;}
+  .picker-modal{
+    background:var(--cream);border-radius:12px;width:520px;max-width:100%;
+    max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    overflow:hidden;
+  }
+  .picker-head{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:20px 22px 14px;background:var(--white);border-bottom:1px solid var(--line);
+  }
+  .picker-title{font-family:Georgia,serif;font-size:18px;color:var(--deep-navy);font-weight:600;}
+  .picker-sub{font-family:sans-serif;font-size:12px;color:var(--slate);margin-top:3px;}
+  .picker-search{width:calc(100% - 44px);margin:16px 22px 10px;}
+  .picker-list{overflow-y:auto;padding:0 22px 20px;flex:1;}
+  .picker-row{
+    display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:8px;
+    cursor:pointer;transition:background .12s ease;border:1px solid transparent;
+  }
+  .picker-row:hover{background:var(--white);border-color:var(--line);}
+  .picker-row-id{font-family:monospace;font-size:11px;color:var(--slate);flex-shrink:0;width:56px;}
+  .picker-row-main{flex:1;min-width:0;}
+  .picker-row-title{font-family:sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);}
+  .picker-row-sub{font-family:sans-serif;font-size:11px;color:var(--slate);margin-top:2px;}
+  .picker-empty{font-family:sans-serif;font-size:13px;color:var(--slate);text-align:center;padding:30px;}
   .link-field-row{display:flex;gap:8px;align-items:stretch;}
   .text-input.mono{font-family:"SF Mono","Roboto Mono",monospace;letter-spacing:0.3px;}
   .id-hint{font-family:sans-serif;font-size:11px;margin-top:6px;min-height:14px;}
@@ -442,11 +515,13 @@
 
 <div class="priority-tabs" id="priorityTabs">
   <button class="tab active" data-priority="backlog" type="button">Backlog</button>
+  <button class="tab" data-priority="roadmap" type="button">Roadmap</button>
   <button class="tab" data-priority="priority" type="button">Priority</button>
   <button class="tab" data-priority="completed" type="button">Completed</button>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap" id="tableWrapSection">
+
   <table>
     <thead>
       <tr>
@@ -469,12 +544,29 @@
   </table>
 </div>
 
+<div class="roadmap-wrap" id="roadmapWrap" style="display:none;"></div>
+
 <div class="overlay" id="overlay"></div>
 
 <div class="img-lightbox" id="imgLightbox">
   <button class="img-lightbox-close" id="imgLightboxClose" type="button" title="Close">✕</button>
   <img id="imgLightboxImg" src="" alt="Full size preview" />
 </div>
+
+<div class="picker-overlay" id="pickerOverlay">
+  <div class="picker-modal">
+    <div class="picker-head">
+      <div>
+        <div class="picker-title">Add from current listings</div>
+        <div class="picker-sub" id="pickerSub"></div>
+      </div>
+      <button class="close-btn" id="pickerCloseBtn" type="button">✕</button>
+    </div>
+    <input class="searchbox sans picker-search" id="pickerSearch" placeholder="Search tests…" />
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+
 <div class="drawer" id="drawer">
   <div class="drawer-head">
     <div>
@@ -1058,16 +1150,111 @@ function renderPriorityTabs(){
 document.querySelectorAll('#priorityTabs .tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     activePriorityFilter = btn.dataset.priority;
+    document.getElementById('tableWrapSection').style.display = activePriorityFilter==='roadmap' ? 'none' : '';
+    document.getElementById('roadmapWrap').style.display = activePriorityFilter==='roadmap' ? '' : 'none';
     renderAll();
   });
 });
+
+function roadmapRowHtml(t){
+  const dateLabel = t.liveDate
+    ? new Date(t.liveDate+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+    : 'TBC';
+  return `
+    <div class="roadmap-row" data-id="${t.id}">
+      <div class="roadmap-row-date">${dateLabel}</div>
+      <div class="roadmap-row-main">
+        <div class="roadmap-row-title">${t.title}</div>
+        <span class="tag">${t.page}</span>
+      </div>
+      <div class="roadmap-row-meta">${badgeHtml(t)}${typeBadgeHtml(t)}${pieBadgeHtml(t)}</div>
+    </div>`;
+}
+
+const ROADMAP_MONTHS_AHEAD = 6;
+const ROADMAP_MONTHS_BACK = 1;
+
+function renderRoadmap(){
+  const wrap = document.getElementById('roadmapWrap');
+  if(!wrap) return;
+  const rows = filteredTests();
+  const scheduled = rows.filter(t=>t.liveDate);
+  const unscheduled = rows.filter(t=>!t.liveDate);
+
+  const groups = {};
+  scheduled.forEach(t=>{
+    const d = new Date(t.liveDate+'T00:00:00');
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+  Object.keys(groups).forEach(key=> groups[key].sort((a,b)=> a.liveDate.localeCompare(b.liveDate)));
+
+  // Always show a rolling window starting a month back (so recently completed
+  // tests have somewhere to sit) through several months ahead — a real
+  // calendar you can plan into, not just months that already have tests.
+  const now = new Date();
+  const monthKeys = [];
+  for(let i=-ROADMAP_MONTHS_BACK; i<ROADMAP_MONTHS_AHEAD; i++){
+    const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    monthKeys.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  // Don't hide anything scheduled further out than the rolling window.
+  Object.keys(groups).forEach(key=>{ if(!monthKeys.includes(key)) monthKeys.push(key); });
+  monthKeys.sort();
+
+  const monthLabel = (key)=>{
+    const [y,m] = key.split('-').map(Number);
+    return new Date(y, m-1, 1).toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+  };
+
+  let html = monthKeys.map(key=>{
+    const monthTests = groups[key] || [];
+    return `
+      <div class="roadmap-month">
+        <div class="roadmap-month-header">
+          ${monthLabel(key)}<span class="roadmap-month-count">${monthTests.length}</span>
+        </div>
+        <div class="roadmap-rows">
+          ${monthTests.length ? monthTests.map(roadmapRowHtml).join('') : `<div class="roadmap-month-empty">Nothing scheduled yet.</div>`}
+        </div>
+        <div class="roadmap-month-actions">
+          <button class="roadmap-add-btn" data-month-key="${key}" type="button">+ Add test for ${monthLabel(key)}</button>
+          <button class="roadmap-pick-btn" data-month-key="${key}" type="button">Add from current listings</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  if(unscheduled.length){
+    html += `
+      <div class="roadmap-month roadmap-unscheduled">
+        <div class="roadmap-month-header">Unscheduled<span class="roadmap-month-count">${unscheduled.length}</span></div>
+        <div class="roadmap-rows">${unscheduled.map(roadmapRowHtml).join('')}</div>
+      </div>`;
+  }
+
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.roadmap-row').forEach(row=>{
+    row.addEventListener('click', ()=> openDrawer(row.dataset.id));
+  });
+  wrap.querySelectorAll('.roadmap-add-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openAddDrawer(btn.dataset.monthKey+'-01'));
+  });
+  wrap.querySelectorAll('.roadmap-pick-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> openTestPicker(btn.dataset.monthKey));
+  });
+}
 
 function renderAll(){
   renderTabs();
   renderPageFilter();
   renderPriorityTabs();
   renderStats();
-  renderTable();
+  if(activePriorityFilter==='roadmap'){
+    renderRoadmap();
+  }else{
+    renderTable();
+  }
 }
 
 document.getElementById('searchBox').addEventListener('input', e=>{
@@ -1113,6 +1300,63 @@ function closeImageLightbox(){
 document.getElementById('imgLightboxClose').addEventListener('click', closeImageLightbox);
 imgLightbox.addEventListener('click', e=>{ if(e.target===imgLightbox) closeImageLightbox(); });
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeImageLightbox(); });
+
+const pickerOverlay = document.getElementById('pickerOverlay');
+const pickerSearch = document.getElementById('pickerSearch');
+let pickerMonthKey = null;
+
+function openTestPicker(monthKey){
+  pickerMonthKey = monthKey;
+  const [y,m] = monthKey.split('-').map(Number);
+  const label = new Date(y, m-1, 1).toLocaleDateString('en-GB',{month:'long', year:'numeric'});
+  document.getElementById('pickerSub').textContent = `Select a test to move into ${label}`;
+  pickerSearch.value = '';
+  renderPickerList('');
+  pickerOverlay.classList.add('open');
+  pickerSearch.focus();
+}
+function closeTestPicker(){
+  pickerOverlay.classList.remove('open');
+  pickerMonthKey = null;
+}
+function renderPickerList(search){
+  const list = document.getElementById('pickerList');
+  const s = search.trim().toLowerCase();
+  const matches = TESTS
+    .filter(t=> !s || (t.title+t.id+t.page).toLowerCase().includes(s))
+    .slice()
+    .sort((a,b)=> a.id.localeCompare(b.id, undefined, {numeric:true}));
+
+  if(matches.length===0){
+    list.innerHTML = `<div class="picker-empty">No tests match "${search}".</div>`;
+    return;
+  }
+  list.innerHTML = matches.map(t=>`
+    <div class="picker-row" data-id="${t.id}">
+      <span class="picker-row-id">${t.id}</span>
+      <div class="picker-row-main">
+        <div class="picker-row-title">${t.title}</div>
+        <div class="picker-row-sub">${t.page}${t.liveDate ? ' · currently ' + t.liveDate : ' · unscheduled'}</div>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.picker-row').forEach(row=>{
+    row.addEventListener('click', ()=> assignTestToMonth(row.dataset.id, pickerMonthKey));
+  });
+}
+function assignTestToMonth(id, monthKey){
+  const t = TESTS.find(x=>x.id===id);
+  if(!t || !monthKey) return;
+  const newDate = monthKey + '-01';
+  t.liveDate = newDate;
+  updateTestRemote(t.id, {liveDate: newDate});
+  closeTestPicker();
+  renderAll();
+}
+pickerSearch.addEventListener('input', ()=> renderPickerList(pickerSearch.value));
+document.getElementById('pickerCloseBtn').addEventListener('click', closeTestPicker);
+pickerOverlay.addEventListener('click', e=>{ if(e.target===pickerOverlay) closeTestPicker(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeTestPicker(); });
 
 function dropzoneHtml(imageUrl, zoneId, fileInputId){
   if(imageUrl){
@@ -1590,7 +1834,7 @@ function nextAvailableId(){
   return candidate;
 }
 
-function openAddDrawer(){
+function openAddDrawer(prefillLiveDate){
   isAddMode = true;
   const newId = nextId();
   document.getElementById('dId').textContent = `${newId} · New test`;
@@ -1655,7 +1899,7 @@ function openAddDrawer(){
           </div>
           <div class="field-block">
             <div class="flabel">Est. live date</div>
-            <input class="date-input" type="date" id="newLiveDate" />
+            <input class="date-input" type="date" id="newLiveDate" value="${prefillLiveDate||''}" />
           </div>
         </div>
         <div class="field-block">
@@ -1830,7 +2074,7 @@ function openAddDrawer(){
   drawer.classList.add('open');
 }
 
-document.getElementById('addBtn').addEventListener('click', openAddDrawer);
+document.getElementById('addBtn').addEventListener('click', ()=> openAddDrawer());
 
 function hasUnsavedAddDrawerInput(){
   if(!isAddMode) return false;
