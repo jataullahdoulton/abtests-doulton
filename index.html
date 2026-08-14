@@ -1218,7 +1218,7 @@ function renderRoadmap(){
     if(!groups[key]) groups[key] = [];
     groups[key].push(t);
   });
-  Object.keys(groups).forEach(key=> groups[key].sort((a,b)=> a.liveDate.localeCompare(b.liveDate)));
+  Object.keys(groups).forEach(key=> groups[key].sort((a,b)=> (a.sortOrder||0) - (b.sortOrder||0)));
 
   // Always show a rolling window starting a month back (so recently completed
   // tests have somewhere to sit) through several months ahead — a real
