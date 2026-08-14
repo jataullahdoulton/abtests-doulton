@@ -1193,7 +1193,7 @@ function roadmapRowHtml(t){
       <span class="drag-handle roadmap-drag-handle" title="Drag to reorder">⠿</span>
       <div class="roadmap-row-date">${dateLabel}</div>
       <div class="roadmap-row-main">
-        <div class="roadmap-row-title">${t.title}</div>
+        <div class="roadmap-row-title">${t.id} · ${t.title}</div>
         <span class="tag">${t.page}</span>
       </div>
       <div class="roadmap-row-meta">${badgeHtml(t)}${typeBadgeHtml(t)}${pieBadgeHtml(t)}${outcomeBadgeHtml(t)}</div>
@@ -1249,8 +1249,8 @@ function renderRoadmap(){
           ${monthTests.length ? monthTests.map(roadmapRowHtml).join('') : `<div class="roadmap-month-empty">Nothing scheduled yet.</div>`}
         </div>
         <div class="roadmap-month-actions">
-          <button class="roadmap-add-btn" data-month-key="${key}" type="button">+ Add test for ${monthLabel(key)}</button>
           <button class="roadmap-pick-btn" data-month-key="${key}" type="button">Add from current listings</button>
+          <button class="roadmap-add-btn" data-month-key="${key}" type="button">+ Add test for ${monthLabel(key)}</button>
         </div>
       </div>`;
   }).join('');
