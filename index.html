@@ -235,6 +235,14 @@
   .pie-mid{background:#F6EBD6;color:var(--amber);border-color:#EBDBB2;}
   .pie-low{background:#F3E3DC;color:var(--red);border-color:#E8CBBC;}
   .pie-none{background:#EEEBE3;color:#A79A82;font-style:italic;font-weight:400;font-size:12.5px;}
+  .outcome-pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    padding:5px 11px;border-radius:14px;white-space:nowrap;
+  }
+  .outcome-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .outcome-success{background:#DCEEE1;color:#2F6B44;}
+  .outcome-inconclusive{background:#F0EAD6;color:#8A7A2F;}
+  .outcome-fail{background:#F3E3DC;color:#B5533C;}
   .priority-pill{
     display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
     padding:5px 11px;border-radius:14px;white-space:nowrap;
@@ -610,7 +618,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:1000,
+    isPriority:false, sortOrder:1000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -622,7 +630,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:2000,
+    isPriority:false, sortOrder:2000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -634,7 +642,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:3000,
+    isPriority:false, sortOrder:3000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -646,7 +654,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:4000,
+    isPriority:false, sortOrder:4000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -658,7 +666,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:5000,
+    isPriority:false, sortOrder:5000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -670,7 +678,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:6000,
+    isPriority:false, sortOrder:6000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -682,7 +690,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:7000,
+    isPriority:false, sortOrder:7000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
   {
@@ -694,7 +702,7 @@ let TESTS = [
     desktopControlImageUrl:'', desktopVariantImageUrl:'',
     mobileControlImageUrl:'', mobileVariantImageUrl:'',
     hypothesis:'', rationale:'', testPlan:'', mockupUrl:'', cardUrl:'', testResult:'', testLearnings:'',
-    isPriority:false, sortOrder:8000,
+    isPriority:false, sortOrder:8000, testOutcome:'',
     testDuration:null, weeklySessions:null, kpiConversionRate:null, mde:null
   },
 ];
@@ -739,7 +747,7 @@ const FIELD_TO_COLUMN = {
   testPlan:'test_plan', mockupUrl:'mockup_url', cardUrl:'card_url', testResult:'test_result', testLearnings:'test_learnings',
   desktopControlImageUrl:'desktop_control_url', desktopVariantImageUrl:'desktop_variant_url',
   mobileControlImageUrl:'mobile_control_url', mobileVariantImageUrl:'mobile_variant_url',
-  isPriority:'is_priority', sortOrder:'sort_order',
+  isPriority:'is_priority', sortOrder:'sort_order', testOutcome:'test_outcome',
   testDuration:'test_duration', weeklySessions:'weekly_sessions', kpiConversionRate:'kpi_cr', mde:'mde'
 };
 
@@ -902,6 +910,18 @@ function pieBadgeHtml(t){
   if(score>=7) cls='pie-high';
   else if(score<4) cls='pie-low';
   return `<span class="pie-pill ${cls}">${score.toFixed(1)}</span>`;
+}
+
+function outcomeBadgeHtml(t){
+  if(!t.testOutcome) return '';
+  const map = {
+    successful:   {label:'Successful',   cls:'outcome-success'},
+    inconclusive: {label:'Inconclusive', cls:'outcome-inconclusive'},
+    unsuccessful: {label:'Unsuccessful', cls:'outcome-fail'}
+  };
+  const info = map[t.testOutcome];
+  if(!info) return '';
+  return `<span class="outcome-pill ${info.cls}">${info.label}</span>`;
 }
 
 function renderPageFilter(){
@@ -1176,7 +1196,7 @@ function roadmapRowHtml(t){
         <div class="roadmap-row-title">${t.title}</div>
         <span class="tag">${t.page}</span>
       </div>
-      <div class="roadmap-row-meta">${badgeHtml(t)}${typeBadgeHtml(t)}${pieBadgeHtml(t)}</div>
+      <div class="roadmap-row-meta">${badgeHtml(t)}${typeBadgeHtml(t)}${pieBadgeHtml(t)}${outcomeBadgeHtml(t)}</div>
       <button class="roadmap-remove-btn" data-remove-id="${t.id}" title="Remove from roadmap" type="button">✕</button>
     </div>`;
 }
@@ -1665,12 +1685,23 @@ function openDrawer(id){
             <input class="date-input" type="date" data-field="liveDate" value="${t.liveDate||''}" />
           </div>
         </div>
-        <div class="field-block">
-          <div class="flabel">Priority</div>
-          <select class="sign-select" data-field="isPriority">
-            <option value="false" ${!t.isPriority?'selected':''}>Backlog</option>
-            <option value="true" ${t.isPriority?'selected':''}>Priority</option>
-          </select>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Priority</div>
+            <select class="sign-select" data-field="isPriority">
+              <option value="false" ${!t.isPriority?'selected':''}>Backlog</option>
+              <option value="true" ${t.isPriority?'selected':''}>Priority</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Test outcome</div>
+            <select class="sign-select" data-field="testOutcome">
+              <option value="" ${!t.testOutcome?'selected':''}>Not yet known</option>
+              <option value="successful" ${t.testOutcome==='successful'?'selected':''}>Successful</option>
+              <option value="inconclusive" ${t.testOutcome==='inconclusive'?'selected':''}>Inconclusive</option>
+              <option value="unsuccessful" ${t.testOutcome==='unsuccessful'?'selected':''}>Unsuccessful</option>
+            </select>
+          </div>
         </div>
         ${pieFieldsHtml(t)}
         ${testParamsHtml(t, 'editParam')}
@@ -1985,12 +2016,23 @@ function openAddDrawer(prefillLiveDate){
             <input class="date-input" type="date" id="newLiveDate" value="${prefillLiveDate||''}" />
           </div>
         </div>
-        <div class="field-block">
-          <div class="flabel">Priority</div>
-          <select class="sign-select" id="newIsPriority">
-            <option value="false" selected>Backlog</option>
-            <option value="true">Priority</option>
-          </select>
+        <div class="grid2">
+          <div class="field-block">
+            <div class="flabel">Priority</div>
+            <select class="sign-select" id="newIsPriority">
+              <option value="false" selected>Backlog</option>
+              <option value="true">Priority</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <div class="flabel">Test outcome</div>
+            <select class="sign-select" id="newTestOutcome">
+              <option value="" selected>Not yet known</option>
+              <option value="successful">Successful</option>
+              <option value="inconclusive">Inconclusive</option>
+              <option value="unsuccessful">Unsuccessful</option>
+            </select>
+          </div>
         </div>
         <div class="pie-box">
           <div class="flabel">PIE score (optional — leave blank if not yet scored)</div>
@@ -2143,6 +2185,7 @@ function openAddDrawer(prefillLiveDate){
       kpiConversionRate: document.getElementById('newParamCr').value===''? null : Number(document.getElementById('newParamCr').value),
       mde: document.getElementById('newParamMde').value===''? null : Number(document.getElementById('newParamMde').value),
       isPriority: document.getElementById('newIsPriority').value==='true',
+      testOutcome: document.getElementById('newTestOutcome').value,
       sortOrder: (Math.max(0, ...TESTS.map(x=>x.sortOrder||0)) + 1000)
     };
     TESTS.push(t);
