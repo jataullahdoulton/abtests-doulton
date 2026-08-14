@@ -110,6 +110,10 @@
   }
   .tab:hover{border-color:var(--navy);color:var(--navy);}
   .tab.active{background:var(--deep-navy);color:var(--cream);border-color:var(--deep-navy);}
+  .tab-drag-handle{margin-right:6px;opacity:0.5;cursor:grab;}
+  .tab-drag-handle:hover{opacity:0.9;}
+  #priorityTabs .tab.dragging{opacity:0.35;}
+  #priorityTabs .tab[draggable="true"]:active{cursor:grabbing;}
   .right-controls{display:flex;gap:10px;align-items:center;}
   .searchbox{
     font-family:sans-serif;font-size:13px;padding:9px 14px;border-radius:20px;
@@ -513,12 +517,7 @@
   </div>
 </div>
 
-<div class="priority-tabs" id="priorityTabs">
-  <button class="tab active" data-priority="backlog" type="button">Backlog</button>
-  <button class="tab" data-priority="roadmap" type="button">Roadmap</button>
-  <button class="tab" data-priority="priority" type="button">Priority</button>
-  <button class="tab" data-priority="completed" type="button">Completed</button>
-</div>
+<div class="priority-tabs" id="priorityTabs"></div>
 
 <div class="table-wrap" id="tableWrapSection">
 
@@ -1141,20 +1140,114 @@ function finalizeRowOrder(body){
   renderAll();
 }
 
+// Declared once — read by renderPriorityTabs, never reset by it. This is what
+// keeps a custom tab order from silently reverting every time the page
+// re-renders (e.g. after closing a test's drawer). The saved value from
+// Supabase (if any) overwrites this default once loadPriorityTabOrder() runs.
+let priorityTabOrder = ['backlog','roadmap','priority','completed'];
+const PRIORITY_TAB_LABELS = {backlog:'Backlog', roadmap:'Roadmap', priority:'Priority', completed:'Completed'};
+const VALID_PRIORITY_TAB_KEYS = Object.keys(PRIORITY_TAB_LABELS);
+
+async function loadPriorityTabOrder(){
+  if(!supabaseAvailable) return;
+  try{
+    const { data, error } = await sb.from('app_settings').select('value').eq('key','priority_tab_order').maybeSingle();
+    if(error) throw error;
+    if(data && Array.isArray(data.value) &&
+       data.value.length===VALID_PRIORITY_TAB_KEYS.length &&
+       VALID_PRIORITY_TAB_KEYS.every(k=>data.value.includes(k))){
+      priorityTabOrder = data.value;
+      renderPriorityTabs();
+    }
+  }catch(e){
+    console.warn('Could not load saved tab order — using default.', e);
+  }
+}
+
+async function savePriorityTabOrder(){
+  if(!supabaseAvailable) return;
+  try{
+    const { error } = await sb.from('app_settings')
+      .upsert({ key:'priority_tab_order', value: priorityTabOrder, updated_at: new Date().toISOString() });
+    if(error) console.error('Could not save tab order:', error);
+  }catch(e){
+    console.error('Could not save tab order:', e);
+  }
+}
+
+function selectPriorityTab(key){
+  activePriorityFilter = key;
+  document.getElementById('tableWrapSection').style.display = activePriorityFilter==='roadmap' ? 'none' : '';
+  document.getElementById('roadmapWrap').style.display = activePriorityFilter==='roadmap' ? '' : 'none';
+  renderAll();
+}
+
 function renderPriorityTabs(){
-  document.querySelectorAll('#priorityTabs .tab').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.priority===activePriorityFilter);
+  const container = document.getElementById('priorityTabs');
+  container.innerHTML = priorityTabOrder.map(key=>`
+    <button class="tab ${key===activePriorityFilter?'active':''}" data-priority="${key}" draggable="true" type="button">
+      <span class="tab-drag-handle" title="Drag to reorder">⠿</span>${PRIORITY_TAB_LABELS[key]}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=> selectPriorityTab(btn.dataset.priority));
+  });
+
+  wirePriorityTabDragging(container);
+}
+
+function animateHorizontalShift(container, mutate){
+  const items = Array.from(container.children);
+  const before = new Map();
+  items.forEach(el=> before.set(el, el.getBoundingClientRect().left));
+  mutate();
+  Array.from(container.children).forEach(el=>{
+    const prevLeft = before.get(el);
+    if(prevLeft===undefined) return;
+    const newLeft = el.getBoundingClientRect().left;
+    const delta = prevLeft - newLeft;
+    if(delta){
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${delta}px)`;
+      requestAnimationFrame(()=>{
+        el.style.transition = 'transform 180ms ease';
+        el.style.transform = '';
+      });
+    }
   });
 }
 
-document.querySelectorAll('#priorityTabs .tab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    activePriorityFilter = btn.dataset.priority;
-    document.getElementById('tableWrapSection').style.display = activePriorityFilter==='roadmap' ? 'none' : '';
-    document.getElementById('roadmapWrap').style.display = activePriorityFilter==='roadmap' ? '' : 'none';
-    renderAll();
+function wirePriorityTabDragging(container){
+  let draggedBtn = null;
+  container.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('dragstart', e=>{
+      draggedBtn = btn;
+      btn.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', btn.dataset.priority);
+    });
+    btn.addEventListener('dragover', e=>{
+      e.preventDefault();
+      if(!draggedBtn || draggedBtn===btn) return;
+      const rect = btn.getBoundingClientRect();
+      const isBefore = (e.clientX - rect.left) < rect.width/2;
+      const wantsBeforeEl = isBefore ? btn : btn.nextElementSibling;
+      if(draggedBtn.nextElementSibling===wantsBeforeEl) return;
+      animateHorizontalShift(container, ()=>{ container.insertBefore(draggedBtn, wantsBeforeEl); });
+    });
+    btn.addEventListener('drop', e=> e.preventDefault());
+    btn.addEventListener('dragend', ()=>{
+      if(draggedBtn) draggedBtn.classList.remove('dragging');
+      // Commit the order the person actually dropped into — this is the only
+      // place priorityTabOrder is ever reassigned.
+      priorityTabOrder = Array.from(container.querySelectorAll('.tab')).map(b=>b.dataset.priority);
+      draggedBtn = null;
+      renderPriorityTabs();
+      savePriorityTabOrder();
+    });
   });
-});
+}
 
 function roadmapRowHtml(t){
   const dateLabel = t.liveDate
@@ -2148,6 +2241,7 @@ function handleDeepLink(){
 }
 
 loadTestsFromSupabase().then(()=> handleDeepLink());
+loadPriorityTabOrder();
 </script>
 </body>
 </html>
