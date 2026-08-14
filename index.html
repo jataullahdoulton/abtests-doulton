@@ -460,7 +460,7 @@
   .id-hint{font-family:sans-serif;font-size:11px;margin-top:6px;min-height:14px;}
   .id-hint.error{color:var(--red);}
   .id-hint.success{color:#2F6B44;}
-  .link-field-row input.text-input{flex:1;}
+  .link-field-row input.text-input,.link-field-row input.date-input{flex:1;}
   .link-open-btn{
     font-family:sans-serif;font-size:12px;font-weight:700;color:var(--navy);
     background:var(--white);border:1px solid var(--line);border-radius:8px;
@@ -468,6 +468,12 @@
     transition:border-color .15s ease;
   }
   .link-open-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .clear-date-btn{
+    font-family:sans-serif;font-size:12px;font-weight:700;color:var(--slate);
+    background:var(--white);border:1px solid var(--line);border-radius:8px;
+    padding:0 14px;white-space:nowrap;cursor:pointer;transition:all .15s ease;
+  }
+  .clear-date-btn:hover{border-color:var(--red);color:var(--red);}
   footer{
     padding:30px 40px 50px;font-family:sans-serif;font-size:11.5px;color:var(--slate);
     border-top:1px solid var(--line);
@@ -1682,7 +1688,10 @@ function openDrawer(id){
           </div>
           <div class="field-block">
             <div class="flabel">Est. live date</div>
-            <input class="date-input" type="date" data-field="liveDate" value="${t.liveDate||''}" />
+            <div class="link-field-row">
+              <input class="date-input" type="date" data-field="liveDate" value="${t.liveDate||''}" id="editLiveDate" />
+              <button class="clear-date-btn" type="button" id="editClearDateBtn">Not scheduled</button>
+            </div>
           </div>
         </div>
         <div class="grid2">
@@ -1830,6 +1839,15 @@ function openDrawer(id){
       }
     });
   });
+
+  const editClearDateBtn = document.getElementById('editClearDateBtn');
+  if(editClearDateBtn){
+    editClearDateBtn.addEventListener('click', ()=>{
+      const dateEl = document.getElementById('editLiveDate');
+      dateEl.value = '';
+      dateEl.dispatchEvent(new Event('change', {bubbles:true}));
+    });
+  }
 
   [
     ['editParamSessions','weeklySessions'],
@@ -2013,7 +2031,10 @@ function openAddDrawer(prefillLiveDate){
           </div>
           <div class="field-block">
             <div class="flabel">Est. live date</div>
-            <input class="date-input" type="date" id="newLiveDate" value="${prefillLiveDate||''}" />
+            <div class="link-field-row">
+              <input class="date-input" type="date" id="newLiveDate" value="${prefillLiveDate||''}" />
+              <button class="clear-date-btn" type="button" id="newClearDateBtn">Not scheduled</button>
+            </div>
           </div>
         </div>
         <div class="grid2">
@@ -2152,6 +2173,13 @@ function openAddDrawer(prefillLiveDate){
   }
   renderAddShotSection();
   wireTestParamsCalculator('newParam');
+
+  const newClearDateBtn = document.getElementById('newClearDateBtn');
+  if(newClearDateBtn){
+    newClearDateBtn.addEventListener('click', ()=>{
+      document.getElementById('newLiveDate').value = '';
+    });
+  }
 
   document.getElementById('saveNewBtn').addEventListener('click', ()=>{
     const title = document.getElementById('newTitle').value.trim();
