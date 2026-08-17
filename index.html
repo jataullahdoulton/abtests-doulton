@@ -1256,7 +1256,7 @@ function renderRoadmap(){
         <div class="roadmap-month-header">
           ${monthLabel(key)}<span class="roadmap-month-count">${monthTests.length}</span>
         </div>
-        <div class="roadmap-rows">
+        <div class="roadmap-rows" data-month-key="${key}">
           ${monthTests.length ? monthTests.map(roadmapRowHtml).join('') : `<div class="roadmap-month-empty">Nothing scheduled yet.</div>`}
         </div>
         <div class="roadmap-month-actions">
@@ -1266,13 +1266,13 @@ function renderRoadmap(){
       </div>`;
   }).join('');
 
-  if(unscheduled.length){
-    html += `
-      <div class="roadmap-month roadmap-unscheduled">
-        <div class="roadmap-month-header">Unscheduled<span class="roadmap-month-count">${unscheduled.length}</span></div>
-        <div class="roadmap-rows">${unscheduled.map(roadmapRowHtml).join('')}</div>
-      </div>`;
-  }
+  html += `
+    <div class="roadmap-month roadmap-unscheduled">
+      <div class="roadmap-month-header">Unscheduled<span class="roadmap-month-count">${unscheduled.length}</span></div>
+      <div class="roadmap-rows" data-month-key="unscheduled">
+        ${unscheduled.length ? unscheduled.map(roadmapRowHtml).join('') : `<div class="roadmap-month-empty">Nothing here.</div>`}
+      </div>
+    </div>`;
 
   wrap.innerHTML = html;
   wrap.querySelectorAll('.roadmap-row').forEach(row=>{
@@ -1293,9 +1293,7 @@ function renderRoadmap(){
   wrap.querySelectorAll('.roadmap-pick-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> openTestPicker(btn.dataset.monthKey));
   });
-  wrap.querySelectorAll('.roadmap-rows').forEach(container=>{
-    if(container.querySelectorAll('.roadmap-row').length>0) wireRoadmapRowDragging(container);
-  });
+  wireRoadmapDragging(wrap);
 }
 
 function removeFromRoadmap(id){
@@ -1307,41 +1305,66 @@ function removeFromRoadmap(id){
 }
 
 let roadmapDragState = null;
+let roadmapDraggedEl = null;
+let roadmapOriginMonthKey = null;
 
-function wireRoadmapRowDragging(container){
-  let draggedEl = null;
-  container.querySelectorAll('.roadmap-row').forEach(row=>{
+function wireRoadmapDragging(wrap){
+  wrap.querySelectorAll('.roadmap-row').forEach(row=>{
     row.addEventListener('dragstart', e=>{
       roadmapDragState = { id: row.dataset.id };
-      draggedEl = row;
+      roadmapDraggedEl = row;
+      roadmapOriginMonthKey = row.closest('.roadmap-rows')?.dataset.monthKey || null;
       row.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', row.dataset.id);
     });
     row.addEventListener('dragend', ()=>{
-      if(draggedEl) draggedEl.classList.remove('dragging');
-      finalizeRoadmapRowOrder(container);
+      if(roadmapDraggedEl) roadmapDraggedEl.classList.remove('dragging');
+      finalizeRoadmapDrag();
       roadmapDragState = null;
-      draggedEl = null;
-    });
-    row.addEventListener('dragover', e=>{
-      e.preventDefault();
-      if(!draggedEl || draggedEl===row) return;
-      const rect = row.getBoundingClientRect();
-      const isAbove = (e.clientY - rect.top) < rect.height/2;
-      const wantsBeforeEl = isAbove ? row : row.nextElementSibling;
-      if(draggedEl.nextElementSibling===wantsBeforeEl) return;
-      animateRowShift(container, ()=>{ container.insertBefore(draggedEl, wantsBeforeEl); });
+      roadmapDraggedEl = null;
+      roadmapOriginMonthKey = null;
     });
     row.addEventListener('drop', e=> e.preventDefault());
   });
-  container.addEventListener('dragover', e=> e.preventDefault());
+
+  // Event delegation at the container level (not per-row) is what makes
+  // dropping into a DIFFERENT month's list possible — the listener follows
+  // wherever the cursor currently is, not just the row's own original month.
+  wrap.querySelectorAll('.roadmap-rows').forEach(container=>{
+    container.addEventListener('dragover', e=>{
+      e.preventDefault();
+      if(!roadmapDraggedEl) return;
+      const overRow = e.target.closest('.roadmap-row');
+
+      if(overRow && overRow!==roadmapDraggedEl){
+        const rect = overRow.getBoundingClientRect();
+        const isAbove = (e.clientY - rect.top) < rect.height/2;
+        const wantsBeforeEl = isAbove ? overRow : overRow.nextElementSibling;
+        if(roadmapDraggedEl.nextElementSibling===wantsBeforeEl && roadmapDraggedEl.parentElement===container) return;
+        animateRowShift(container, ()=>{ container.insertBefore(roadmapDraggedEl, wantsBeforeEl); });
+      }else if(!overRow && roadmapDraggedEl.parentElement!==container){
+        // Hovering an empty month (or empty space below the last row) — move
+        // the dragged row in and clear the "nothing scheduled" placeholder.
+        animateRowShift(container, ()=>{
+          const emptyMsg = container.querySelector('.roadmap-month-empty');
+          if(emptyMsg) emptyMsg.remove();
+          container.appendChild(roadmapDraggedEl);
+        });
+      }
+    });
+    container.addEventListener('drop', e=> e.preventDefault());
+  });
 }
 
-function finalizeRoadmapRowOrder(container){
-  if(!roadmapDragState) return;
+function finalizeRoadmapDrag(){
+  if(!roadmapDragState || !roadmapDraggedEl) return;
   const draggedTest = TESTS.find(x=>x.id===roadmapDragState.id);
   if(!draggedTest) return;
+
+  const container = roadmapDraggedEl.closest('.roadmap-rows');
+  if(!container) return;
+  const targetMonthKey = container.dataset.monthKey;
 
   const rowEls = Array.from(container.querySelectorAll('.roadmap-row[data-id]'));
   const idx = rowEls.findIndex(r=>r.dataset.id===draggedTest.id);
@@ -1353,9 +1376,22 @@ function finalizeRoadmapRowOrder(container){
   const nextOrder = nextTest ? (nextTest.sortOrder||0) : (draggedTest.sortOrder||0) + 2000;
   const newOrder = (prevOrder + nextOrder) / 2;
 
-  if(newOrder===draggedTest.sortOrder) return;
-  draggedTest.sortOrder = newOrder;
-  updateTestRemote(draggedTest.id, {sortOrder: newOrder});
+  const patch = {};
+  if(newOrder!==draggedTest.sortOrder){
+    draggedTest.sortOrder = newOrder;
+    patch.sortOrder = newOrder;
+  }
+
+  // Only touch the date if it actually moved to a different month's list —
+  // reordering within the same month never changes the date.
+  if(targetMonthKey && targetMonthKey!==roadmapOriginMonthKey){
+    const newLiveDate = targetMonthKey==='unscheduled' ? '' : targetMonthKey+'-01';
+    draggedTest.liveDate = newLiveDate;
+    patch.liveDate = newLiveDate;
+  }
+
+  if(Object.keys(patch).length===0) return;
+  updateTestRemote(draggedTest.id, patch);
   renderAll();
 }
 
