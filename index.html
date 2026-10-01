@@ -255,6 +255,45 @@
   .priority-yes{background:#F6EBD6;color:#8A6A2F;}
   .priority-no{background:#EEEBE3;color:#7A7264;}
   .priority-tabs{display:flex;gap:8px;margin:34px 40px 14px;}
+  .tracking-wrap{margin:0 40px 60px;}
+  .tracking-intro{font-family:sans-serif;font-size:12.5px;color:var(--slate);margin-bottom:18px;line-height:1.6;max-width:720px;}
+  .tracking-exp-card{
+    background:var(--white);border:1px solid var(--line);border-radius:10px;
+    padding:22px 26px;margin-bottom:18px;
+  }
+  .tracking-exp-head{
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+    padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--line);
+  }
+  .tracking-exp-title{display:flex;align-items:center;gap:12px;}
+  .tracking-exp-title h3{font-family:Georgia,serif;font-size:18px;color:var(--deep-navy);font-weight:600;margin:0;}
+  .tracking-exp-meta{display:flex;align-items:center;gap:10px;}
+  .tracking-exp-updated{font-family:sans-serif;font-size:11.5px;color:var(--slate);}
+  .tracking-event{padding:14px 0;border-bottom:1px solid var(--line);}
+  .tracking-event:last-child{border-bottom:none;}
+  .tracking-event-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+  .tracking-event-name{font-family:sans-serif;font-size:13px;font-weight:700;color:var(--ink);}
+  .tracking-event-type{font-family:sans-serif;font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:0.8px;margin-left:8px;font-weight:700;}
+  .tracking-event-sessions{font-family:sans-serif;font-size:11px;color:var(--slate);}
+  .tracking-bars{display:flex;flex-direction:column;gap:7px;}
+  .tracking-bar-row{display:grid;grid-template-columns:72px 1fr 168px;align-items:center;gap:10px;}
+  .tracking-bar-label{font-family:sans-serif;font-size:11px;font-weight:700;color:var(--navy);}
+  .tracking-bar-track{background:#EFEAE0;border-radius:5px;height:10px;overflow:hidden;}
+  .tracking-bar-fill{height:100%;border-radius:5px;transition:width .3s ease;}
+  .tracking-bar-fill.control{background:var(--gold);}
+  .tracking-bar-fill.variant{background:var(--navy);}
+  .tracking-bar-nums{font-family:sans-serif;font-size:11px;color:var(--slate);text-align:right;white-space:nowrap;}
+  .tracking-bar-nums b{color:var(--ink);}
+  .tracking-unresolved{font-family:sans-serif;font-size:10.5px;color:#A79A82;font-style:italic;margin-top:10px;}
+  .tracking-empty{font-family:sans-serif;color:var(--slate);font-size:13px;padding:36px;text-align:center;}
+  .tracking-status-pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    padding:5px 11px;border-radius:14px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.4px;
+  }
+  .tracking-status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .tracking-status-running{background:#D3EEDC;color:#1F6B3B;}
+  .tracking-status-paused{background:#F0EAD6;color:#8A7A2F;}
+  .tracking-status-other{background:#E9E5DB;color:#6B6458;}
   .overlay{
     position:fixed;inset:0;background:rgba(11,27,55,0.35);z-index:40;
     display:none;
@@ -568,6 +607,8 @@
 
 <div class="roadmap-wrap" id="roadmapWrap" style="display:none;"></div>
 
+<div class="tracking-wrap" id="trackingWrap" style="display:none;"></div>
+
 <div class="overlay" id="overlay"></div>
 
 <div class="img-lightbox" id="imgLightbox">
@@ -605,7 +646,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-const PAGE_OPTIONS = ['Homepage','Search','Navigation','PLP','PDP','Checkout'];
+const PAGE_OPTIONS = ['Homepage','Search','Navigation','PLP','PDP','Checkout','PPC'];
 const DEVICE_OPTIONS = ['Mobile / Desktop','Desktop','Mobile'];
 
 const STAGES = [
@@ -905,6 +946,9 @@ let activePieFilter = 'all';
 let searchTerm = '';
 let sortMode = 'default';
 let activePriorityFilter = 'backlog';
+let trackingData = null;
+let trackingLoading = false;
+let trackingError = null;
 
 function stageInfo(key){ return STAGES.find(s=>s.key===key) || STAGES[0]; }
 
@@ -1175,13 +1219,17 @@ function finalizeRowOrder(body){
   renderAll();
 }
 
-const PRIORITY_TAB_ORDER = ['backlog','roadmap','priority','completed'];
-const PRIORITY_TAB_LABELS = {backlog:'Backlog', roadmap:'Roadmap', priority:'Priority', completed:'Completed'};
+const PRIORITY_TAB_ORDER = ['backlog','roadmap','priority','completed','tracking'];
+const PRIORITY_TAB_LABELS = {backlog:'Backlog', roadmap:'Roadmap', priority:'Priority', completed:'Completed', tracking:'Live Tracking'};
 
 function selectPriorityTab(key){
   activePriorityFilter = key;
-  document.getElementById('tableWrapSection').style.display = activePriorityFilter==='roadmap' ? 'none' : '';
+  document.getElementById('tableWrapSection').style.display = (activePriorityFilter==='roadmap' || activePriorityFilter==='tracking') ? 'none' : '';
   document.getElementById('roadmapWrap').style.display = activePriorityFilter==='roadmap' ? '' : 'none';
+  document.getElementById('trackingWrap').style.display = activePriorityFilter==='tracking' ? '' : 'none';
+  if(activePriorityFilter==='tracking' && !trackingData && !trackingLoading){
+    loadTrackingData();
+  }
   renderAll();
 }
 
@@ -1395,6 +1443,149 @@ function finalizeRoadmapDrag(){
   renderAll();
 }
 
+// ---- Live Tracking (Shoplift event data, read from the event_counts view) ----
+
+function timeAgo(iso){
+  if(!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diffMs/60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs/24);
+  return `${days}d ago`;
+}
+
+async function loadTrackingData(){
+  if(!supabaseAvailable){
+    trackingError = 'offline';
+    renderTracking();
+    return;
+  }
+  trackingLoading = true;
+  trackingError = null;
+  renderTracking();
+  try{
+    const { data, error } = await sb.from('event_counts').select('*');
+    if(error) throw error;
+
+    const experiments = {};
+    (data || []).forEach(row=>{
+      if(!experiments[row.experiment_id]){
+        experiments[row.experiment_id] = {
+          id: row.experiment_id,
+          name: row.experiment_name,
+          status: row.experiment_status,
+          events: {},
+          lastEventAt: null
+        };
+      }
+      const exp = experiments[row.experiment_id];
+      if(!exp.events[row.event_name]){
+        exp.events[row.event_name] = {
+          eventName: row.event_name,
+          eventType: row.event_type,
+          variants: {},
+          sessions: 0
+        };
+      }
+      const ev = exp.events[row.event_name];
+      const variantKey = row.variant || 'unresolved';
+      ev.variants[variantKey] = { count: Number(row.event_count)||0, sessions: Number(row.unique_sessions)||0 };
+      if(variantKey !== 'unresolved') ev.sessions += Number(row.unique_sessions)||0;
+      if(row.last_event_at && (!exp.lastEventAt || row.last_event_at > exp.lastEventAt)){
+        exp.lastEventAt = row.last_event_at;
+      }
+    });
+
+    trackingData = Object.values(experiments).sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  }catch(e){
+    console.warn('Could not load live tracking data', e);
+    trackingError = 'error';
+    trackingData = null;
+  }
+  trackingLoading = false;
+  renderTracking();
+}
+
+function trackingStatusPillHtml(status){
+  const cls = status==='running' ? 'tracking-status-running' : status==='paused' ? 'tracking-status-paused' : 'tracking-status-other';
+  const label = status ? status.charAt(0).toUpperCase()+status.slice(1) : 'Unknown';
+  return `<span class="tracking-status-pill ${cls}">${label}</span>`;
+}
+
+function trackingEventRowHtml(ev){
+  const variantKeys = Object.keys(ev.variants).filter(k=>k!=='unresolved').sort((a,b)=> a==='control' ? -1 : b==='control' ? 1 : a.localeCompare(b));
+  const maxCount = Math.max(1, ...variantKeys.map(k=>ev.variants[k].count));
+  const bars = variantKeys.map(k=>{
+    const v = ev.variants[k];
+    const pct = Math.round((v.count / maxCount) * 100);
+    const barCls = k==='control' ? 'control' : 'variant';
+    const label = k==='control' ? 'Control' : k.replace('variant_','Variant ').replace(/^variant$/,'Variant');
+    return `
+      <div class="tracking-bar-row">
+        <div class="tracking-bar-label">${label}</div>
+        <div class="tracking-bar-track"><div class="tracking-bar-fill ${barCls}" style="width:${pct}%;"></div></div>
+        <div class="tracking-bar-nums"><b>${v.count.toLocaleString()}</b> events · ${v.sessions.toLocaleString()} sessions</div>
+      </div>`;
+  }).join('');
+  const unresolved = ev.variants.unresolved;
+  const unresolvedHtml = unresolved
+    ? `<div class="tracking-unresolved">+ ${unresolved.count.toLocaleString()} events with no variant resolved (fired before Shoplift assigned the visitor, e.g. first-touch pageviews)</div>`
+    : '';
+  return `
+    <div class="tracking-event">
+      <div class="tracking-event-head">
+        <div><span class="tracking-event-name">${ev.eventName}</span><span class="tracking-event-type">${ev.eventType || ''}</span></div>
+        <div class="tracking-event-sessions">${ev.sessions.toLocaleString()} sessions tracked</div>
+      </div>
+      <div class="tracking-bars">${bars}</div>
+      ${unresolvedHtml}
+    </div>`;
+}
+
+function trackingExpCardHtml(exp){
+  const events = Object.values(exp.events).sort((a,b)=> a.eventName.localeCompare(b.eventName));
+  return `
+    <div class="tracking-exp-card">
+      <div class="tracking-exp-head">
+        <div class="tracking-exp-title">
+          <h3>${exp.name || exp.id}</h3>
+          ${trackingStatusPillHtml(exp.status)}
+        </div>
+        <div class="tracking-exp-meta">
+          <span class="tracking-exp-updated">Last event ${timeAgo(exp.lastEventAt) || '—'}</span>
+        </div>
+      </div>
+      ${events.map(trackingEventRowHtml).join('') || '<div class="tracking-empty">No events recorded yet.</div>'}
+    </div>`;
+}
+
+function renderTracking(){
+  const wrap = document.getElementById('trackingWrap');
+  if(!wrap) return;
+  if(trackingLoading){
+    wrap.innerHTML = `<div class="tracking-empty">Loading live event data…</div>`;
+    return;
+  }
+  if(trackingError==='offline'){
+    wrap.innerHTML = `<div class="tracking-empty">Not connected to the shared database right now, so live event data can't be loaded. This works once hosted (e.g. on Vercel).</div>`;
+    return;
+  }
+  if(trackingError==='error'){
+    wrap.innerHTML = `<div class="tracking-empty">Couldn't load live event data. <button class="roadmap-add-btn" style="width:auto;display:inline-block;margin-top:10px;" onclick="loadTrackingData()">Try again</button></div>`;
+    return;
+  }
+  if(!trackingData || trackingData.length===0){
+    wrap.innerHTML = `<div class="tracking-empty">No tracked experiments yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="tracking-intro">Live pageview and click events from Shoplift, split by control vs. variant, for each running test. Pulled straight from the event log — refresh this tab to see the latest counts.</div>
+    ${trackingData.map(trackingExpCardHtml).join('')}`;
+}
+
 function renderAll(){
   renderTabs();
   renderPageFilter();
@@ -1402,6 +1593,8 @@ function renderAll(){
   renderStats();
   if(activePriorityFilter==='roadmap'){
     renderRoadmap();
+  }else if(activePriorityFilter==='tracking'){
+    renderTracking();
   }else{
     renderTable();
   }
